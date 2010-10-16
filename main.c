@@ -72,19 +72,6 @@ HRESULT ddraw_CreatePalette(void *This, LPPALETTEENTRY DDColorArray, LPDIRECTDRA
     return DD_OK;
 }
 
-HRESULT ddraw_CreateSurface(void *This, LPDDSURFACEDESC DDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *DDSurface, IUnknown FAR * unkOuter)
-{
-    printf("DirectDraw::CreateSurface(This=%p, DDSurfaceDesc=%p, DDSurface=%p, unkOuter=%p)\n", This, DDSurfaceDesc, DDSurface, unkOuter);
-
-    fakeDirectDrawSurfaceObject *Surface = (fakeDirectDrawSurfaceObject *)malloc(sizeof(fakeDirectDrawSurfaceObject));
-    Surface->Ref = 1;
-    Surface->Functions = &siface;
-    printf(" Surface = %p\n", Surface);
-    *DDSurface = (LPDIRECTDRAWSURFACE)Surface;
-
-    return DD_OK;
-}
-
 HRESULT ddraw_SetCooperativeLevel(void *This, HWND hWnd, DWORD dwFlags)
 {
     printf("DirectDraw::SetCooperativeLevel(This=%p, hWnd=0x%08X, dwFlags=0x%08X)\n", This, (unsigned int)hWnd, (unsigned int)dwFlags);

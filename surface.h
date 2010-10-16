@@ -20,6 +20,8 @@
 #include <windows.h>
 #include "ddraw.h"
 
+HRESULT ddraw_CreateSurface(void *This, LPDDSURFACEDESC DDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *DDSurface, IUnknown FAR * unkOuter);
+
 typedef struct
 {
     /* IUnknown */
@@ -69,6 +71,10 @@ typedef struct
 typedef struct
 {
     fakeDirectDrawSurface *Functions;
+
+    DWORD width;
+    DWORD height;
+    void *surface;
 
     ULONG Ref;
 
