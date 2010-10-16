@@ -28,7 +28,43 @@ typedef struct
     ULONG (*Release)(void *);
 
     /* IDirectDrawSurface */
+    HRESULT (*AddAttachedSurface)(void *, LPDIRECTDRAWSURFACE);
+    HRESULT (*AddOverlayDirtyRect)(void *, LPRECT);
+    HRESULT (*Blt)(void *, LPRECT,LPDIRECTDRAWSURFACE, LPRECT,DWORD, LPDDBLTFX);
+    HRESULT (*BltBatch)(void *, LPDDBLTBATCH, DWORD, DWORD );
+    HRESULT (*BltFast)(void *, DWORD,DWORD,LPDIRECTDRAWSURFACE, LPRECT,DWORD);
+    HRESULT (*DeleteAttachedSurface)(void *, DWORD,LPDIRECTDRAWSURFACE);
+    HRESULT (*EnumAttachedSurfaces)(void *, LPVOID,LPDDENUMSURFACESCALLBACK);
+    HRESULT (*EnumOverlayZOrders)(void *, DWORD,LPVOID,LPDDENUMSURFACESCALLBACK);
+    HRESULT (*Flip)(void *, LPDIRECTDRAWSURFACE, DWORD);
+    HRESULT (*GetAttachedSurface)(void *, LPDDSCAPS, LPDIRECTDRAWSURFACE FAR *);
+    HRESULT (*GetBltStatus)(void *, DWORD);
+    HRESULT (*GetCaps)(void *, LPDDSCAPS);
+    HRESULT (*GetClipper)(void *, LPDIRECTDRAWCLIPPER FAR*);
+    HRESULT (*GetColorKey)(void *, DWORD, LPDDCOLORKEY);
+    HRESULT (*GetDC)(void *, HDC FAR *);
+    HRESULT (*GetFlipStatus)(void *, DWORD);
+    HRESULT (*GetOverlayPosition)(void *, LPLONG, LPLONG );
+    HRESULT (*GetPalette)(void *, LPDIRECTDRAWPALETTE FAR*);
+    HRESULT (*GetPixelFormat)(void *, LPDDPIXELFORMAT);
+    HRESULT (*GetSurfaceDesc)(void *, LPDDSURFACEDESC);
+    HRESULT (*Initialize)(void *, LPDIRECTDRAW, LPDDSURFACEDESC);
+    HRESULT (*IsLost)(void *);
+    HRESULT (*Lock)(void *, LPRECT,LPDDSURFACEDESC,DWORD,HANDLE);
+    HRESULT (*ReleaseDC)(void *, HDC);
+    HRESULT (*Restore)(void *);
+    HRESULT (*SetClipper)(void *, LPDIRECTDRAWCLIPPER);
+    HRESULT (*SetColorKey)(void *, DWORD, LPDDCOLORKEY);
+    HRESULT (*SetOverlayPosition)(void *, LONG, LONG );
+    HRESULT (*SetPalette)(void *, LPDIRECTDRAWPALETTE);
+    HRESULT (*Unlock)(void *, LPVOID);
+    HRESULT (*UpdateOverlay)(void *, LPRECT, LPDIRECTDRAWSURFACE,LPRECT,DWORD, LPDDOVERLAYFX);
+    HRESULT (*UpdateOverlayDisplay)(void *, DWORD);
+    HRESULT (*UpdateOverlayZOrder)(void *, DWORD, LPDIRECTDRAWSURFACE);
 } fakeDirectDrawSurface;
+
+/*
+*/
 
 typedef struct
 {
@@ -37,5 +73,7 @@ typedef struct
     ULONG Ref;
 
 } fakeDirectDrawSurfaceObject;
+
+extern fakeDirectDrawSurface siface;
 
 #endif

@@ -42,4 +42,6 @@ typedef struct
 
 } fakeDirectDrawPaletteObject;
 
+extern fakeDirectDrawPalette piface;
+
 #endif

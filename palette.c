@@ -16,3 +16,22 @@
 
 #include <windows.h>
 #include "palette.h"
+
+/* from main */
+HRESULT QueryInterface(void *This, REFIID riid, void **obj);
+ULONG AddRef(void *This);
+ULONG Release(void *This);
+HRESULT null();
+
+fakeDirectDrawPalette piface =
+{
+    /* IUnknown */
+    QueryInterface,
+    AddRef,
+    Release,
+    /* IDirectDrawPalette */
+    null, // ddraw_palette_GetCaps
+    null, // ddraw_palette_GetEntries
+    null, // ddraw_palette_Initialize
+    null  // ddraw_palette_SetEntries
+};

@@ -16,3 +16,51 @@
 
 #include <windows.h>
 #include "surface.h"
+
+/* from main */
+HRESULT QueryInterface(void *This, REFIID riid, void **obj);
+ULONG AddRef(void *This);
+ULONG Release(void *This);
+HRESULT null();
+
+fakeDirectDrawSurface siface =
+{
+    /* IUnknown */
+    QueryInterface,
+    AddRef,
+    Release,
+    /* IDirectDrawSurface */
+    null, // AddAttachedSurface
+    null, // AddOverlayDirtyRect
+    null, // Blt
+    null, // BltBatch
+    null, // BltFast
+    null, // DeleteAttachedSurface
+    null, // EnumAttachedSurfaces
+    null, // EnumOverlayZOrders
+    null, // Flip
+    null, // GetAttachedSurface
+    null, // GetBltStatus
+    null, // GetCaps
+    null, // GetClipper
+    null, // GetColorKey
+    null, // GetDC
+    null, // GetFlipStatus
+    null, // GetOverlayPosition
+    null, // GetPalette
+    null, // GetPixelFormat
+    null, // GetSurfaceDesc
+    null, // Initialize
+    null, // IsLost
+    null, // Lock
+    null, // ReleaseDC
+    null, // Restore
+    null, // SetClipper
+    null, // SetColorKey
+    null, // SetOverlayPosition
+    null, // SetPalette
+    null, // Unlock
+    null, // UpdateOverlay
+    null, // UpdateOverlayDisplay
+    null  // UpdateOverlayZOrder
+};

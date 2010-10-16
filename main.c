@@ -62,12 +62,26 @@ typedef struct
 HRESULT ddraw_CreatePalette(void *This, LPPALETTEENTRY DDColorArray, LPDIRECTDRAWPALETTE FAR * DDPalette, IUnknown FAR * unkOuter)
 {
     printf("DirectDraw::CreatePalette(This=%p, DDColorArray=%p, DDPalette=%p, unkOuter=%p)\n", This, DDColorArray, DDPalette, unkOuter);
+
+    fakeDirectDrawPaletteObject *Palette = (fakeDirectDrawPaletteObject *)malloc(sizeof(fakeDirectDrawPaletteObject));
+    Palette->Ref = 1;
+    Palette->Functions = &piface;
+    printf(" Palette = %p\n", Palette);
+    *DDPalette = (LPDIRECTDRAWPALETTE)Palette;
+
     return DD_OK;
 }
 
 HRESULT ddraw_CreateSurface(void *This, LPDDSURFACEDESC DDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *DDSurface, IUnknown FAR * unkOuter)
 {
     printf("DirectDraw::CreateSurface(This=%p, DDSurfaceDesc=%p, DDSurface=%p, unkOuter=%p)\n", This, DDSurfaceDesc, DDSurface, unkOuter);
+
+    fakeDirectDrawSurfaceObject *Surface = (fakeDirectDrawSurfaceObject *)malloc(sizeof(fakeDirectDrawSurfaceObject));
+    Surface->Ref = 1;
+    Surface->Functions = &siface;
+    printf(" Surface = %p\n", Surface);
+    *DDSurface = (LPDIRECTDRAWSURFACE)Surface;
+
     return DD_OK;
 }
 
@@ -111,9 +125,9 @@ ULONG Release(void *This)
     return ((fakeDirectDrawObject *)This)->Ref;
 }
 
-HRESULT null()
+HRESULT null(void *This)
 {
-    printf("Warning: null method called!\n");
+    printf("Warning: null method called for instance %p!\n", This);
     return DD_OK;
 }
 
