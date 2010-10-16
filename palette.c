@@ -15,6 +15,7 @@
  */
 
 #include <windows.h>
+#include <stdio.h>
 #include "palette.h"
 
 /* from main */
@@ -22,6 +23,19 @@ HRESULT QueryInterface(void *This, REFIID riid, void **obj);
 ULONG AddRef(void *This);
 ULONG Release(void *This);
 HRESULT null();
+
+HRESULT ddraw_CreatePalette(void *This, LPPALETTEENTRY DDColorArray, LPDIRECTDRAWPALETTE FAR * DDPalette, IUnknown FAR * unkOuter)
+{
+    printf("DirectDraw::CreatePalette(This=%p, DDColorArray=%p, DDPalette=%p, unkOuter=%p)\n", This, DDColorArray, DDPalette, unkOuter);
+
+    fakeDirectDrawPaletteObject *Palette = (fakeDirectDrawPaletteObject *)malloc(sizeof(fakeDirectDrawPaletteObject));
+    Palette->Ref = 1;
+    Palette->Functions = &piface;
+    printf(" Palette = %p\n", Palette);
+    *DDPalette = (LPDIRECTDRAWPALETTE)Palette;
+
+    return DD_OK;
+}
 
 fakeDirectDrawPalette piface =
 {

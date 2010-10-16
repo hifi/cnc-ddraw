@@ -37,7 +37,7 @@ typedef struct
     HRESULT (*EnumDisplayModes)(void *);
     HRESULT (*EnumSurfaces)(void *);
     HRESULT (*FlipToGDISurface)(void *);
-    HRESULT (*GetCaps)(void *);
+    HRESULT (*GetCaps)(void *, LPDDCAPS, LPDDCAPS);
     HRESULT (*GetDisplayMode)(void *);
     HRESULT (*GetFourCCCodes)(void *);
     HRESULT (*GetGDISurface)(void *);
@@ -59,15 +59,30 @@ typedef struct
 
 } fakeDirectDrawObject;
 
-HRESULT ddraw_CreatePalette(void *This, LPPALETTEENTRY DDColorArray, LPDIRECTDRAWPALETTE FAR * DDPalette, IUnknown FAR * unkOuter)
+HRESULT ddraw_GetCaps(void *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps)
 {
-    printf("DirectDraw::CreatePalette(This=%p, DDColorArray=%p, DDPalette=%p, unkOuter=%p)\n", This, DDColorArray, DDPalette, unkOuter);
+    printf("DirectDraw::GetCaps(This=%p, lpDDDriverCaps=%p, lpDDEmulCaps=%p)\n", This, lpDDDriverCaps, lpDDEmulCaps);
 
-    fakeDirectDrawPaletteObject *Palette = (fakeDirectDrawPaletteObject *)malloc(sizeof(fakeDirectDrawPaletteObject));
-    Palette->Ref = 1;
-    Palette->Functions = &piface;
-    printf(" Palette = %p\n", Palette);
-    *DDPalette = (LPDIRECTDRAWPALETTE)Palette;
+    if(lpDDDriverCaps)
+    {
+        lpDDDriverCaps->dwSize = sizeof(DDCAPS);
+        lpDDDriverCaps->dwCKeyCaps = 0;
+        lpDDDriverCaps->dwPalCaps = DDPCAPS_8BIT|DDPCAPS_PRIMARYSURFACE;
+        lpDDDriverCaps->dwVidMemTotal = 16777216;
+        lpDDDriverCaps->dwVidMemFree = 16777216;
+        lpDDDriverCaps->dwMaxVisibleOverlays = 0;
+        lpDDDriverCaps->dwCurrVisibleOverlays = 0;
+        lpDDDriverCaps->dwNumFourCCCodes = 0;
+        lpDDDriverCaps->dwAlignBoundarySrc = 0;
+        lpDDDriverCaps->dwAlignSizeSrc = 0;
+        lpDDDriverCaps->dwAlignBoundaryDest = 0;
+        lpDDDriverCaps->dwAlignSizeDest = 0;
+    }
+
+    if(lpDDEmulCaps)
+    {
+        lpDDEmulCaps->dwSize = 0;
+    }
 
     return DD_OK;
 }
@@ -133,7 +148,7 @@ fakeDirectDraw iface =
     null, //EnumDisplayModes,
     null, //EnumSurfaces,
     null, //FlipToGDISurface,
-    null, //GetCaps,
+    ddraw_GetCaps,
     null, //GetDisplayMode,
     null, //GetFourCCCodes,
     null, //GetGDISurface,

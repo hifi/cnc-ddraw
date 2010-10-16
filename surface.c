@@ -38,7 +38,7 @@ ULONG ddraw_surface_Release(void *_This)
 {
     fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
 
-    printf("DirectDrawSurface::Release(((fakeDirectDrawSurfaceObject *)This)=%p)\n", ((fakeDirectDrawSurfaceObject *)This));
+    printf("DirectDrawSurface::Release(This=%p)\n", ((fakeDirectDrawSurfaceObject *)This));
 
     This->Ref--;
 
@@ -71,6 +71,11 @@ HRESULT ddraw_CreateSurface(void *This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIREC
     Surface->height = lpDDSurfaceDesc->dwHeight;
     Surface->surface = NULL;
 
+    if(Surface->width && Surface->height)
+    {
+        Surface->surface = malloc(Surface->width * Surface->height);
+    }
+
     printf(" Surface = %p\n", Surface);
 
     Surface->Ref = 0;
@@ -84,6 +89,25 @@ HRESULT ddraw_CreateSurface(void *This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIREC
 HRESULT ddraw_surface_Blt(void *This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
 {
     printf("DirectDrawSurface::Blt(This=%p, lpDestRect=%p, lpDDSrcSurface=%p, lpSrcRect=%p, dwFlags=%d, lpDDBltFx=%p)\n", This, lpDestRect, lpDDSrcSurface, lpSrcRect, (int)dwFlags, lpDDBltFx);
+    return DD_OK;
+}
+
+HRESULT ddraw_surface_GetCaps(void *_This, LPDDSCAPS lpDDSCaps)
+{
+    printf("DirectDrawSurface::GetCaps(This=%p, lpDDSCaps=%p)\n", _This, lpDDSCaps);
+    lpDDSCaps->dwCaps = 0;
+    return DD_OK;
+}
+
+HRESULT ddraw_surface_GetPalette(void *_This, LPDIRECTDRAWPALETTE FAR *lplpDDPalette)
+{
+    printf("DirectDrawSurface::GetPalette(This=%p, lplpDDPalette=%p)\n", _This, lplpDDPalette);
+    return DD_OK;
+}
+
+HRESULT ddraw_surface_SetPalette(void *_This, LPDIRECTDRAWPALETTE lpDDPalette)
+{
+    printf("DirectDrawSurface::SetPalette(This=%p, lpDDPalette=%p)\n", _This, lpDDPalette);
     return DD_OK;
 }
 
@@ -113,8 +137,6 @@ HRESULT ddraw_surface_Lock(void *_This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDS
     {
         printf(" dwFlags: DDLOCK_WRITEONLY\n");
     }
-
-    This->surface = malloc(This->width * This->height);
 
     lpDDSurfaceDesc->dwSize = sizeof(DDSURFACEDESC);
     lpDDSurfaceDesc->dwFlags = DDSD_LPSURFACE;
@@ -147,13 +169,13 @@ fakeDirectDrawSurface siface =
     null, // ddraw_surface_Flip
     null, // ddraw_surface_GetAttachedSurface
     null, // ddraw_surface_GetBltStatus
-    null, // ddraw_surface_GetCaps
+    ddraw_surface_GetCaps,
     null, // ddraw_surface_GetClipper
     null, // ddraw_surface_GetColorKey
     null, // ddraw_surface_GetDC
     null, // ddraw_surface_GetFlipStatus
     null, // ddraw_surface_GetOverlayPosition
-    null, // ddraw_surface_GetPalette
+    ddraw_surface_GetPalette,
     null, // ddraw_surface_GetPixelFormat
     null, // ddraw_surface_GetSurfaceDesc
     null, // ddraw_surface_Initialize
@@ -164,7 +186,7 @@ fakeDirectDrawSurface siface =
     null, // ddraw_surface_SetClipper
     null, // ddraw_surface_SetColorKey
     null, // ddraw_surface_SetOverlayPosition
-    null, // ddraw_surface_SetPalette
+    ddraw_surface_SetPalette,
     ddraw_surface_Unlock,
     null, // ddraw_surface_UpdateOverlay
     null, // ddraw_surface_UpdateOverlayDisplay

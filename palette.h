@@ -44,4 +44,6 @@ typedef struct
 
 extern fakeDirectDrawPalette piface;
 
+HRESULT ddraw_CreatePalette(void *This, LPPALETTEENTRY DDColorArray, LPDIRECTDRAWPALETTE FAR * DDPalette, IUnknown FAR * unkOuter);
+
 #endif
