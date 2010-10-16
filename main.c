@@ -18,46 +18,9 @@
 #include <stdio.h>
 #include "ddraw.h"
 
+#include "main.h"
 #include "palette.h"
 #include "surface.h"
-
-typedef struct
-{
-    /* IUnknown */
-    HRESULT (*QueryInterface)(void *, REFIID, void **);
-    ULONG (*AddRef)(void *);
-    ULONG (*Release)(void *);
-
-    /* IDirectDraw */
-    HRESULT (*Compact)(void *);
-    HRESULT (*CreateClipper)(void *);
-    HRESULT (*CreatePalette)(void *, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR *, IUnknown FAR *);
-    HRESULT (*CreateSurface)(void *, LPDDSURFACEDESC, LPDIRECTDRAWSURFACE FAR *, IUnknown FAR *);
-    HRESULT (*DuplicateSurface)(void *);
-    HRESULT (*EnumDisplayModes)(void *);
-    HRESULT (*EnumSurfaces)(void *);
-    HRESULT (*FlipToGDISurface)(void *);
-    HRESULT (*GetCaps)(void *, LPDDCAPS, LPDDCAPS);
-    HRESULT (*GetDisplayMode)(void *);
-    HRESULT (*GetFourCCCodes)(void *);
-    HRESULT (*GetGDISurface)(void *);
-    HRESULT (*GetMonitorFrequency)(void *);
-    HRESULT (*SetScanLine)(void *);
-    HRESULT (*GetVerticalBlankStatus)(void *);
-    HRESULT (*Initialize)(void *);
-    HRESULT (*RestoreDisplayMode)(void *);
-    HRESULT (*SetCooperativeLevel)(void *, HWND, DWORD);
-    HRESULT (*SetDisplayMode)(void *, DWORD, DWORD, DWORD, DWORD, DWORD);
-    HRESULT (*WaitForVerticalBlank)(void *);
-} fakeDirectDraw;
-
-typedef struct
-{
-    fakeDirectDraw *Functions;
-
-    ULONG Ref;
-
-} fakeDirectDrawObject;
 
 HRESULT ddraw_GetCaps(void *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps)
 {
@@ -93,10 +56,16 @@ HRESULT ddraw_SetCooperativeLevel(void *This, HWND hWnd, DWORD dwFlags)
     return DD_OK;
 }
 
-HRESULT ddraw_SetDisplayMode(void *This, DWORD width, DWORD height, DWORD bpp, DWORD refreshRate, DWORD flags)
+HRESULT ddraw_SetDisplayMode(void *_This, DWORD width, DWORD height, DWORD bpp)
 {
-    printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d, refreshRate=%d, flags=0x%08X)\n",
-            This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp, (unsigned int)refreshRate, (unsigned int)flags);
+    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
+
+    printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
+
+    This->width = width;
+    This->height = height;
+    This->bpp = bpp;
+
     return DD_OK;
 }
 

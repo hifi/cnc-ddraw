@@ -16,6 +16,8 @@
 
 #include <windows.h>
 #include <stdio.h>
+
+#include "main.h"
 #include "surface.h"
 
 /* from main */
@@ -54,29 +56,56 @@ ULONG ddraw_surface_Release(void *_This)
     return This->Ref;
 }
 
-HRESULT ddraw_CreateSurface(void *This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *lpDDSurface, IUnknown FAR * unkOuter)
+HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *lpDDSurface, IUnknown FAR * unkOuter)
 {
+    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
+
     printf("DirectDraw::CreateSurface(This=%p, lpDDSurfaceDesc=%p, lpDDSurface=%p, unkOuter=%p)\n", This, lpDDSurfaceDesc, lpDDSurface, unkOuter);
 
     dump_surface_desc_flags(lpDDSurfaceDesc);
 
-    printf(" lpDDSurfaceDesc->dwHeight: %d\n", (int)lpDDSurfaceDesc->dwHeight);
-    printf(" lpDDSurfaceDesc->dwWidth: %d\n", (int)lpDDSurfaceDesc->dwWidth);
-
     fakeDirectDrawSurfaceObject *Surface = (fakeDirectDrawSurfaceObject *)malloc(sizeof(fakeDirectDrawSurfaceObject));
+
+    if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
+    {
+        if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+        {
+            printf("  DDSCAPS_PRIMARYSURFACE\n");
+            Surface->width = This->width;
+            Surface->height = This->height;
+        }
+        if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN)
+        {
+            printf("  DDSCAPS_OFFSCREENPLAIN\n");
+        }
+        if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY)
+        {
+            printf("  DDSCAPS_VIDEOMEMORY\n");
+        }
+        if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_LOCALVIDMEM)
+        {
+            printf("  DDSCAPS_LOCALVIDMEM\n");
+        }
+    }
+
+    if( !(lpDDSurfaceDesc->dwFlags & DDSD_CAPS) || !(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) )
+    {
+        Surface->width = lpDDSurfaceDesc->dwWidth;
+        Surface->height = lpDDSurfaceDesc->dwHeight;
+    }
+
     Surface->Functions = &siface;
 
     /* private stuff */
-    Surface->width = lpDDSurfaceDesc->dwWidth;
-    Surface->height = lpDDSurfaceDesc->dwHeight;
+    Surface->bpp = This->bpp;
     Surface->surface = NULL;
 
     if(Surface->width && Surface->height)
     {
-        Surface->surface = malloc(Surface->width * Surface->height);
+        Surface->surface = malloc(Surface->width * Surface->height * Surface->bpp / 8);
     }
 
-    printf(" Surface = %p\n", Surface);
+    printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);
 
     Surface->Ref = 0;
     ddraw_surface_AddRef(Surface);
@@ -95,7 +124,7 @@ HRESULT ddraw_surface_Blt(void *This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpD
 HRESULT ddraw_surface_GetCaps(void *_This, LPDDSCAPS lpDDSCaps)
 {
     printf("DirectDrawSurface::GetCaps(This=%p, lpDDSCaps=%p)\n", _This, lpDDSCaps);
-    lpDDSCaps->dwCaps = 0;
+    lpDDSCaps->dwCaps = 0x00000000l;
     return DD_OK;
 }
 
