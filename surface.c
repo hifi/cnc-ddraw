@@ -25,6 +25,7 @@ HRESULT QueryInterface(void *This, REFIID riid, void **obj);
 ULONG AddRef(void *This);
 HRESULT null();
 
+void surface_flip(fakeDirectDrawSurfaceObject *This);
 void dump_ddsd(DWORD);
 void dump_ddscaps(DWORD);
 
@@ -143,6 +144,7 @@ HRESULT ddraw_surface_Blt(void *_This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lp
     fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
     fakeDirectDrawSurfaceObject *Source = (fakeDirectDrawSurfaceObject *)lpDDSrcSurface;
 
+#if _DEDUG
     printf("DirectDrawSurface::Blt(This=%p, lpDestRect=%p, lpDDSrcSurface=%p, lpSrcRect=%p, dwFlags=%d, lpDDBltFx=%p)\n", This, lpDestRect, lpDDSrcSurface, lpSrcRect, (int)dwFlags, lpDDBltFx);
     if(lpDestRect)
     {
@@ -152,8 +154,16 @@ HRESULT ddraw_surface_Blt(void *_This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lp
     {
         printf("  src: l: %d t: %d r: %d b: %d\n", (int)lpSrcRect->left, (int)lpSrcRect->top, (int)lpSrcRect->right, (int)lpSrcRect->bottom);
     }
+#endif
+
     /* FIXME: blit the correct areas */
-    memcpy(This->surface, Source->surface, This->width * This->height);
+    if(Source)
+    {
+        memcpy(This->surface, Source->surface, This->width * This->height);
+    }
+
+    surface_flip(This);
+
     return DD_OK;
 }
 
@@ -218,47 +228,15 @@ HRESULT ddraw_surface_Lock(void *_This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDS
 
 HRESULT ddraw_surface_Unlock(void *_This, LPVOID lpRect)
 {
-    int i,j;
     fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
 
 #if _DEBUG
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
 
-    if( (This->caps & DDSCAPS_PRIMARYSURFACE) && This->palette )
+    if(This->caps & DDSCAPS_PRIMARYSURFACE)
     {
-
-        /* FIXME: temporary grayscale palette */
-        int tmp_palette[256];
-        for(i=0;i<256;i++)
-        {
-            tmp_palette[i] = (i<<16)|(i<<8)|i;
-        }
-
-        /* convert ddraw surface to opengl texture */
-        for(i=0; i<This->height; i++)
-        {
-            for(j=0; j<This->width; j++)
-            {
-                This->glTex[i*This->width+j] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
-            }
-        }
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, This->width, This->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, This->glTex);
-
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-
-        glEnable(GL_TEXTURE_2D);
-
-        glBegin(GL_TRIANGLE_FAN);
-        glTexCoord2f(0,0); glVertex2f(-1,  1);
-        glTexCoord2f(1,0); glVertex2f( 1,  1);
-        glTexCoord2f(1,1); glVertex2f( 1, -1);	
-        glTexCoord2f(0,1); glVertex2f(-1, -1);
-        glEnd();
-
-        SwapBuffers(This->hDC);
+        surface_flip(This);
     }
 
     return DD_OK;
@@ -305,6 +283,39 @@ fakeDirectDrawSurface siface =
     null, // ddraw_surface_UpdateOverlayDisplay
     null  // ddraw_surface_UpdateOverlayZOrder
 };
+
+void surface_flip(fakeDirectDrawSurfaceObject *This)
+{
+    int i,j;
+
+    if(This->palette)
+    {
+        /* convert ddraw surface to opengl texture */
+        for(i=0; i<This->height; i++)
+        {
+            for(j=0; j<This->width; j++)
+            {
+                This->glTex[i*This->width+j] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
+            }
+        }
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, This->width, This->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, This->glTex);
+
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+
+        glEnable(GL_TEXTURE_2D);
+
+        glBegin(GL_TRIANGLE_FAN);
+        glTexCoord2f(0,0); glVertex2f(-1,  1);
+        glTexCoord2f(1,0); glVertex2f( 1,  1);
+        glTexCoord2f(1,1); glVertex2f( 1, -1);	
+        glTexCoord2f(0,1); glVertex2f(-1, -1);
+        glEnd();
+
+        SwapBuffers(This->hDC);
+    }
+}
 
 void dump_ddscaps(DWORD dwCaps)
 {
