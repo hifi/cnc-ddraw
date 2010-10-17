@@ -115,6 +115,12 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
     return DD_OK;
 }
 
+HRESULT ddraw_surface_AddAttachedSurface(void *_This, LPDIRECTDRAWSURFACE lpDDSurface)
+{
+    printf("DirectDrawSurface::AddAttachedSurface(This=%p, lpDDSurface=%p)\n", _This, lpDDSurface);
+    return DD_OK;
+}
+
 HRESULT ddraw_surface_Blt(void *This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
 {
     printf("DirectDrawSurface::Blt(This=%p, lpDestRect=%p, lpDDSrcSurface=%p, lpSrcRect=%p, dwFlags=%d, lpDDBltFx=%p)\n", This, lpDestRect, lpDDSrcSurface, lpSrcRect, (int)dwFlags, lpDDBltFx);
@@ -187,7 +193,7 @@ fakeDirectDrawSurface siface =
     ddraw_surface_AddRef,
     ddraw_surface_Release,
     /* IDirectDrawSurface */
-    null, // ddraw_surface_AddAttachedSurface
+    ddraw_surface_AddAttachedSurface,
     null, // ddraw_surface_AddOverlayDirtyRect
     ddraw_surface_Blt,
     null, // ddraw_surface_BltBatch

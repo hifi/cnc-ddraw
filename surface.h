@@ -65,9 +65,6 @@ typedef struct
     HRESULT (*UpdateOverlayZOrder)(void *, DWORD, LPDIRECTDRAWSURFACE);
 } fakeDirectDrawSurface;
 
-/*
-*/
-
 typedef struct
 {
     fakeDirectDrawSurface *Functions;

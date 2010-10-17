@@ -29,6 +29,7 @@ HRESULT ddraw_GetCaps(void *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps
     if(lpDDDriverCaps)
     {
         lpDDDriverCaps->dwSize = sizeof(DDCAPS);
+        lpDDDriverCaps->dwCaps = DDCAPS_BLT|DDCAPS_PALETTE;
         lpDDDriverCaps->dwCKeyCaps = 0;
         lpDDDriverCaps->dwPalCaps = DDPCAPS_8BIT|DDPCAPS_PRIMARYSURFACE;
         lpDDDriverCaps->dwVidMemTotal = 16777216;
