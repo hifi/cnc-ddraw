@@ -122,7 +122,7 @@ HRESULT ddraw_surface_Blt(void *This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpD
     }
     if(lpSrcRect)
     {
-        printf(" dest: l: %d t: %d r: %d b: %d\n", (int)lpSrcRect->left, (int)lpSrcRect->top, (int)lpSrcRect->right, (int)lpSrcRect->bottom);
+        printf("  src: l: %d t: %d r: %d b: %d\n", (int)lpSrcRect->left, (int)lpSrcRect->top, (int)lpSrcRect->right, (int)lpSrcRect->bottom);
     }
     return DD_OK;
 }
