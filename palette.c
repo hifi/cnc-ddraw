@@ -55,7 +55,9 @@ HRESULT ddraw_palette_SetEntries(void *_This, DWORD dwFlags, DWORD dwStartingEnt
 
     fakeDirectDrawPaletteObject *This = (fakeDirectDrawPaletteObject *)_This;
 
+#if _DEBUG
     printf("DirectDrawPalette::SetEntries(This=%p, dwFlags=%d, dwStartingEntry=%d, dwCount=%d, lpEntries=%p)\n", This, (int)dwFlags, (int)dwStartingEntry, (int)dwCount, lpEntries);
+#endif
 
     for(i=0;i<256;i++)
     {

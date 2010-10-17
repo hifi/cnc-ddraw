@@ -25,6 +25,7 @@ HRESULT QueryInterface(void *This, REFIID riid, void **obj);
 ULONG AddRef(void *This);
 HRESULT null();
 
+DWORD WINAPI ogl_Thread(void *_This);
 void surface_flip(fakeDirectDrawSurfaceObject *This);
 void dump_ddsd(DWORD);
 void dump_ddscaps(DWORD);
@@ -77,32 +78,17 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
     Surface->glTex = NULL;
     Surface->caps = 0;
     Surface->palette = NULL;
+    Surface->glThread = NULL;
 
     if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
     {
         if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
         {
-            PIXELFORMATDESCRIPTOR pfd;
-
-            printf("Creating primary surface and initializing OpenGL\n");
-
             Surface->width = This->width;
             Surface->height = This->height;
+            Surface->hWnd = This->hWnd;
 
-            Surface->hDC = GetDC(This->hWnd);
-
-            memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
-            pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-            pfd.nVersion = 1;
-            pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-            pfd.iPixelType = PFD_TYPE_RGBA;
-            pfd.cColorBits = 24;
-            pfd.cDepthBits = 16;
-            pfd.iLayerType = PFD_MAIN_PLANE;
-            SetPixelFormat( Surface->hDC, ChoosePixelFormat( Surface->hDC, &pfd ), &pfd );
-                
-            Surface->hRC = wglCreateContext( Surface->hDC );
-            wglMakeCurrent( Surface->hDC, Surface->hRC );
+            CreateThread(NULL, 0, ogl_Thread, (void *)Surface, 0, Surface->glThread);
         }
 
         dump_ddscaps(lpDDSurfaceDesc->ddsCaps.dwCaps);
@@ -144,7 +130,7 @@ HRESULT ddraw_surface_Blt(void *_This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lp
     fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
     fakeDirectDrawSurfaceObject *Source = (fakeDirectDrawSurfaceObject *)lpDDSrcSurface;
 
-#if _DEDUG
+#if _DEBUG
     printf("DirectDrawSurface::Blt(This=%p, lpDestRect=%p, lpDDSrcSurface=%p, lpSrcRect=%p, dwFlags=%d, lpDDBltFx=%p)\n", This, lpDestRect, lpDDSrcSurface, lpSrcRect, (int)dwFlags, lpDDBltFx);
     if(lpDestRect)
     {
@@ -156,13 +142,34 @@ HRESULT ddraw_surface_Blt(void *_This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lp
     }
 #endif
 
-    /* FIXME: blit the correct areas */
     if(Source)
     {
-        memcpy(This->surface, Source->surface, This->width * This->height);
+        int dx=0,dy=0; 
+        if (lpDestRect)
+        {
+            dx=lpDestRect->left;
+            dy=lpDestRect->top; 
+        }
+        int x0=0,y0=0,x1=Source->width,y1=Source->height; 
+        if (lpSrcRect)
+        { 
+            x0 = max(x0, lpSrcRect->left); 
+            x1 = min(x1, lpSrcRect->right); 
+            y0 = max(y0, lpSrcRect->top); 
+            y1 = min(y1, lpSrcRect->bottom); 
+        } 
+        unsigned char* to=This->surface + dy*This->width + dx; 
+        unsigned char* from=Source->surface + y0*Source->width + x0; 
+        int s = x1-x0; 
+
+        int y;
+        for(y=y0; y<y1; ++y, to+=This->width, from+=Source->width)
+        { 
+            memcpy(to, from, s); 
+        } 
     }
 
-    surface_flip(This);
+    SetEvent(This->flipEvent);
 
     return DD_OK;
 }
@@ -236,7 +243,7 @@ HRESULT ddraw_surface_Unlock(void *_This, LPVOID lpRect)
 
     if(This->caps & DDSCAPS_PRIMARYSURFACE)
     {
-        surface_flip(This);
+        SetEvent(This->flipEvent);
     }
 
     return DD_OK;
@@ -284,12 +291,34 @@ fakeDirectDrawSurface siface =
     null  // ddraw_surface_UpdateOverlayZOrder
 };
 
-void surface_flip(fakeDirectDrawSurfaceObject *This)
+DWORD WINAPI ogl_Thread(void *_This)
 {
     int i,j;
+    PIXELFORMATDESCRIPTOR pfd;
+    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
 
-    if(This->palette)
+    This->hDC = GetDC(This->hWnd);
+
+    memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+    pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+    pfd.nVersion = 1;
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    pfd.iPixelType = PFD_TYPE_RGBA;
+    pfd.cColorBits = 24;
+    pfd.cDepthBits = 16;
+    pfd.iLayerType = PFD_MAIN_PLANE;
+    SetPixelFormat( This->hDC, ChoosePixelFormat( This->hDC, &pfd ), &pfd );
+        
+    This->hRC = wglCreateContext( This->hDC );
+    wglMakeCurrent( This->hDC, This->hRC );
+
+    This->flipEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+    while(1)
     {
+        WaitForSingleObject(This->flipEvent, INFINITE);
+        ResetEvent(This->flipEvent);
+
         /* convert ddraw surface to opengl texture */
         for(i=0; i<This->height; i++)
         {

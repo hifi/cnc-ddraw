@@ -81,6 +81,10 @@ typedef struct
     DWORD lPitch;
     DWORD lXPitch;
 
+    HANDLE glThread;
+    HANDLE flipEvent;
+
+    HWND hWnd;
     HDC hDC;
     HGLRC hRC;
     int *glTex;
