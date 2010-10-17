@@ -37,6 +37,18 @@ HRESULT ddraw_CreatePalette(void *This, DWORD dwFlags, LPPALETTEENTRY lpDDColorA
     return DD_OK;
 }
 
+HRESULT ddraw_palette_GetEntries(void *This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries)
+{
+    printf("DirectDrawPalette::GetEntries(This=%p, dwFlags=%d, dwBase=%d, dwNumEntries=%d, lpEntries=%p)\n", This, (int)dwFlags, (int)dwBase, (int)dwNumEntries, lpEntries);
+    return DD_OK;
+}
+
+HRESULT ddraw_palette_SetEntries(void *This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
+{
+    printf("DirectDrawPalette::SetEntries(This=%p, dwFlags=%d, dwStartingEntry=%d, dwCount=%d, lpEntries=%p)\n", This, (int)dwFlags, (int)dwStartingEntry, (int)dwCount, lpEntries);
+    return DD_OK;
+}
+
 fakeDirectDrawPalette piface =
 {
     /* IUnknown */
@@ -45,7 +57,7 @@ fakeDirectDrawPalette piface =
     Release,
     /* IDirectDrawPalette */
     null, // ddraw_palette_GetCaps
-    null, // ddraw_palette_GetEntries
+    ddraw_palette_GetEntries,
     null, // ddraw_palette_Initialize
-    null  // ddraw_palette_SetEntries
+    ddraw_palette_SetEntries
 };

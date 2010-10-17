@@ -143,6 +143,7 @@ HRESULT ddraw_surface_Lock(void *_This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDS
 {
     fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
 
+#if _DEBUG
     printf("DirectDrawSurface::Lock(This=%p, lpDestRect=%p, lpDDSurfaceDesc=%p, dwFlags=%d, hEvent=%p)\n", This, lpDestRect, lpDDSurfaceDesc, (int)dwFlags, hEvent);
 
     if(dwFlags & DDLOCK_SURFACEMEMORYPTR)
@@ -165,6 +166,7 @@ HRESULT ddraw_surface_Lock(void *_This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDS
     {
         printf(" dwFlags: DDLOCK_WRITEONLY\n");
     }
+#endif
 
     lpDDSurfaceDesc->dwSize = sizeof(DDSURFACEDESC);
     lpDDSurfaceDesc->dwFlags = DDSD_LPSURFACE;
@@ -175,7 +177,9 @@ HRESULT ddraw_surface_Lock(void *_This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDS
 
 HRESULT ddraw_surface_Unlock(void *This, LPVOID lpRect)
 {
+#if _DEBUG
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
+#endif
     return DD_OK;
 }
 
