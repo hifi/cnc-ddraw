@@ -82,6 +82,7 @@ typedef struct
     DWORD lXPitch;
 
     HANDLE glThread;
+    BOOL glRun;
     HANDLE flipEvent;
 
     HWND hWnd;

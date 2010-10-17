@@ -51,6 +51,13 @@ HRESULT ddraw_GetCaps(void *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps
     return DD_OK;
 }
 
+HRESULT ddraw_RestoreDisplayMode(void *_This)
+{
+    printf("DirectDraw::RestoreDisplayMode(This=%p)\n", _This);
+
+    return DD_OK;
+}
+
 HRESULT ddraw_SetCooperativeLevel(void *_This, HWND hWnd, DWORD dwFlags)
 {
     fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
@@ -72,36 +79,42 @@ HRESULT ddraw_SetDisplayMode(void *_This, DWORD width, DWORD height, DWORD bpp)
     This->bpp = bpp;
 
     MoveWindow(This->hWnd, 0, 0, This->width, This->height, TRUE);
-    SetWindowLong(This->hWnd, GWL_STYLE, WS_CAPTION | WS_POPUPWINDOW | WS_VISIBLE);
 
     return DD_OK;
 }
 
-HRESULT QueryInterface(void *This, REFIID riid, void **obj)
+HRESULT ddraw_QueryInterface(void *This, REFIID riid, void **obj)
 {
-    printf("QueryInterface(This=%p, riid=%08X, obj=%p)\n", This, (unsigned int)riid, obj);
+    printf("DirectDraw::QueryInterface(This=%p, riid=%08X, obj=%p)\n", This, (unsigned int)riid, obj);
     return S_OK;
 }
 
-ULONG AddRef(void *This)
+ULONG ddraw_AddRef(void *_This)
 {
-    printf("AddRef(This=%p)\n", This);
-    ((fakeDirectDrawObject *)This)->Ref++;
-    return ((fakeDirectDrawObject *)This)->Ref;
+    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
+
+    printf("DirectDraw::AddRef(This=%p)\n", This);
+
+    This->Ref++;
+
+    return This->Ref;
 }
 
-ULONG Release(void *This)
+ULONG ddraw_Release(void *_This)
 {
-    printf("Release(This=%p)\n", This);
-    ((fakeDirectDrawObject *)This)->Ref--;
+    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
 
-    if(((fakeDirectDrawObject *)This)->Ref == 0)
+    printf("DirectDraw::Release(This=%p)\n", This);
+
+    This->Ref--;
+
+    if(This->Ref == 0)
     {
         free(This);
         return 0;
     }
 
-    return ((fakeDirectDrawObject *)This)->Ref;
+    return This->Ref;
 }
 
 HRESULT null(void *This)
@@ -113,9 +126,9 @@ HRESULT null(void *This)
 fakeDirectDraw iface =
 {
     /* IUnknown */
-    QueryInterface,
-    AddRef,
-    Release,
+    ddraw_QueryInterface,
+    ddraw_AddRef,
+    ddraw_Release,
     /* IDirectDraw */
     null, //Compact,
     null, //CreateClipper,
@@ -133,13 +146,11 @@ fakeDirectDraw iface =
     null, //GetScanLine,
     null, //GetVerticalBlankStatus,
     null, //Initialize,
-    null, //RestoreDisplayMode,
+    ddraw_RestoreDisplayMode,
     ddraw_SetCooperativeLevel,
     ddraw_SetDisplayMode,
     null  //WaitForVerticalBlank
 };
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter) 
 {
@@ -153,19 +164,4 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     *lplpDD = (LPDIRECTDRAW)This;
 
     return DD_OK;
-}
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message)
-    {
-        case WM_CLOSE:
-            PostQuitMessage( 0 );
-        case WM_CREATE:
-        case WM_DESTROY:
-        case WM_KEYDOWN:
-            return 0;
-        default:
-            return DefWindowProc( hWnd, message, wParam, lParam );
-    }
 }

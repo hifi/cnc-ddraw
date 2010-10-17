@@ -21,14 +21,17 @@
 #include "surface.h"
 
 /* from main */
-HRESULT QueryInterface(void *This, REFIID riid, void **obj);
-ULONG AddRef(void *This);
 HRESULT null();
 
 DWORD WINAPI ogl_Thread(void *_This);
-void surface_flip(fakeDirectDrawSurfaceObject *This);
 void dump_ddsd(DWORD);
 void dump_ddscaps(DWORD);
+
+HRESULT ddraw_surface_QueryInterface(void *This, REFIID riid, void **obj)
+{
+    printf("DirectDrawSurface::QueryInterface(This=%p, riid=%08X, obj=%p)\n", This, (unsigned int)riid, obj);
+    return S_OK;
+}
 
 ULONG ddraw_surface_AddRef(void *_This)
 {
@@ -49,9 +52,23 @@ ULONG ddraw_surface_Release(void *_This)
 
     if(This->Ref == 0)
     {
+        if(This->glThread)
+        {
+            This->glRun = FALSE;
+            SetEvent(This->flipEvent);
+            WaitForSingleObject(This->glThread, INFINITE);
+        }
         if(This->surface)
         {
             free(This->surface);
+        }
+        if(This->glTex)
+        {
+            free(This->glTex);
+        }
+        if(This->palette)
+        {
+            This->palette->Functions->Release(This->palette);
         }
         free(This);
         return 0;
@@ -79,6 +96,7 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
     Surface->caps = 0;
     Surface->palette = NULL;
     Surface->glThread = NULL;
+    Surface->glRun = TRUE;
 
     if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
     {
@@ -87,8 +105,7 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
             Surface->width = This->width;
             Surface->height = This->height;
             Surface->hWnd = This->hWnd;
-
-            CreateThread(NULL, 0, ogl_Thread, (void *)Surface, 0, Surface->glThread);
+            Surface->glThread = CreateThread(NULL, 0, ogl_Thread, (void *)Surface, 0, NULL);
         }
 
         dump_ddscaps(lpDDSurfaceDesc->ddsCaps.dwCaps);
@@ -252,7 +269,7 @@ HRESULT ddraw_surface_Unlock(void *_This, LPVOID lpRect)
 fakeDirectDrawSurface siface =
 {
     /* IUnknown */
-    QueryInterface,
+    ddraw_surface_QueryInterface,
     ddraw_surface_AddRef,
     ddraw_surface_Release,
     /* IDirectDrawSurface */
@@ -314,7 +331,7 @@ DWORD WINAPI ogl_Thread(void *_This)
 
     This->flipEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-    while(1)
+    while(This->glRun)
     {
         WaitForSingleObject(This->flipEvent, INFINITE);
         ResetEvent(This->flipEvent);
@@ -344,6 +361,12 @@ DWORD WINAPI ogl_Thread(void *_This)
 
         SwapBuffers(This->hDC);
     }
+
+    wglMakeCurrent(NULL, NULL);
+    wglDeleteContext(This->hRC);
+    ReleaseDC(This->hWnd, This->hDC);
+
+    return 0;
 }
 
 void dump_ddscaps(DWORD dwCaps)
