@@ -62,7 +62,6 @@ typedef struct
     DWORD height;
     DWORD bpp;
 
-    HINSTANCE hInstance;
     HWND hWnd;
 
 } fakeDirectDrawObject;

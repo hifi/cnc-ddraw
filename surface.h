@@ -73,10 +73,14 @@ typedef struct
     DWORD height;
     DWORD bpp;
     DWORD caps;
+
     void *surface;
+    DWORD lPitch;
+    DWORD lXPitch;
 
     HDC hDC;
     HGLRC hRC;
+    int *glTex;
 
     ULONG Ref;
 

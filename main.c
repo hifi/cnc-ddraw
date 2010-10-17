@@ -51,9 +51,13 @@ HRESULT ddraw_GetCaps(void *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps
     return DD_OK;
 }
 
-HRESULT ddraw_SetCooperativeLevel(void *This, HWND hWnd, DWORD dwFlags)
+HRESULT ddraw_SetCooperativeLevel(void *_This, HWND hWnd, DWORD dwFlags)
 {
+    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
     printf("DirectDraw::SetCooperativeLevel(This=%p, hWnd=0x%08X, dwFlags=0x%08X)\n", This, (unsigned int)hWnd, (unsigned int)dwFlags);
+
+    This->hWnd = hWnd;
+
     return DD_OK;
 }
 
@@ -139,32 +143,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter) 
 {
-    WNDCLASS wc;
-
     printf("DirectDrawCreate(lpGUID=%p, lplpDD=%p, pUnkOuter=%p)\n", lpGUID, lplpDD, pUnkOuter);
 
     fakeDirectDrawObject *This = (fakeDirectDrawObject *)malloc(sizeof(fakeDirectDrawObject));
     This->Ref = 1;
     This->Functions = &iface;
+    This->hWnd = NULL;
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;
-
-    This->hInstance = GetModuleHandle( 0 );
-
-    /* create dummy window */
-    wc.style = CS_OWNDC;
-    wc.lpfnWndProc = WndProc;
-    wc.cbClsExtra = 0;
-    wc.cbWndExtra = 0;
-    wc.hInstance = This->hInstance;
-    wc.hIcon = LoadIcon( NULL, IDI_APPLICATION );
-    wc.hCursor = LoadCursor( NULL, IDC_ARROW );
-    wc.hbrBackground = 0;
-    wc.lpszMenuName = NULL;
-    wc.lpszClassName = "cnc-ddraw";
-    RegisterClass( &wc );
-    
-    This->hWnd = CreateWindow("cnc-ddraw", "cnc-ddraw", 0, 0, 0, 0, 0, NULL, NULL, This->hInstance, NULL );
 
     return DD_OK;
 }

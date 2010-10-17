@@ -73,6 +73,7 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
     Surface->hDC = NULL;
     Surface->bpp = This->bpp;
     Surface->surface = NULL;
+    Surface->glTex = NULL;
     Surface->caps = 0;
 
     if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
@@ -114,7 +115,10 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
 
     if(Surface->width && Surface->height)
     {
-        Surface->surface = malloc(Surface->width * Surface->height * Surface->bpp / 8);
+        Surface->lPitch = Surface->width;
+        Surface->lXPitch = Surface->bpp / 8;
+        Surface->surface = malloc(Surface->width * Surface->height * Surface->lXPitch);
+        Surface->glTex = malloc(Surface->width * Surface->height * sizeof(int));
     }
 
     printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);
@@ -133,8 +137,11 @@ HRESULT ddraw_surface_AddAttachedSurface(void *_This, LPDIRECTDRAWSURFACE lpDDSu
     return DD_OK;
 }
 
-HRESULT ddraw_surface_Blt(void *This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
+HRESULT ddraw_surface_Blt(void *_This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
 {
+    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
+    fakeDirectDrawSurfaceObject *Source = (fakeDirectDrawSurfaceObject *)lpDDSrcSurface;
+
     printf("DirectDrawSurface::Blt(This=%p, lpDestRect=%p, lpDDSrcSurface=%p, lpSrcRect=%p, dwFlags=%d, lpDDBltFx=%p)\n", This, lpDestRect, lpDDSrcSurface, lpSrcRect, (int)dwFlags, lpDDBltFx);
     if(lpDestRect)
     {
@@ -144,6 +151,8 @@ HRESULT ddraw_surface_Blt(void *This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpD
     {
         printf("  src: l: %d t: %d r: %d b: %d\n", (int)lpSrcRect->left, (int)lpSrcRect->top, (int)lpSrcRect->right, (int)lpSrcRect->bottom);
     }
+    /* FIXME: blit the correct areas */
+    memcpy(This->surface, Source->surface, This->width * This->height);
     return DD_OK;
 }
 
@@ -197,25 +206,56 @@ HRESULT ddraw_surface_Lock(void *_This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDS
 #endif
 
     lpDDSurfaceDesc->dwSize = sizeof(DDSURFACEDESC);
-    lpDDSurfaceDesc->dwFlags = DDSD_LPSURFACE;
+    lpDDSurfaceDesc->dwFlags = DDSD_LPSURFACE|DDSD_PITCH;
     lpDDSurfaceDesc->lpSurface = This->surface;
+    lpDDSurfaceDesc->lPitch = This->lPitch;
 
     return DD_OK;
 }
 
 HRESULT ddraw_surface_Unlock(void *_This, LPVOID lpRect)
 {
+    int i,j;
     fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
+
 #if _DEBUG
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
 
     if(This->caps & DDSCAPS_PRIMARYSURFACE)
     {
-        /* clearing the screen for now */
-        glClearColor( 0.0f, 0.0f, 255.0f, 0.0f );
-        glClear( GL_COLOR_BUFFER_BIT );
-        SwapBuffers( This->hDC );
+
+        /* FIXME: temporary grayscale palette */
+        int tmp_palette[256];
+        for(i=0;i<256;i++)
+        {
+            tmp_palette[i] = (i<<16)|(i<<8)|i;
+        }
+
+        /* convert ddraw surface to opengl texture */
+        for(i=0; i<This->height; i++)
+        {
+            for(j=0; j<This->width; j++)
+            {
+                This->glTex[i*This->width+j] = tmp_palette[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
+            }
+        }
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, This->width, This->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, This->glTex);
+
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+
+        glEnable(GL_TEXTURE_2D);
+
+        glBegin(GL_TRIANGLE_FAN);
+        glTexCoord2f(0,0); glVertex2f(-1,  1);
+        glTexCoord2f(1,0); glVertex2f( 1,  1);
+        glTexCoord2f(1,1); glVertex2f( 1, -1);	
+        glTexCoord2f(0,1); glVertex2f(-1, -1);
+        glEnd();
+
+        SwapBuffers(This->hDC);
     }
 
     return DD_OK;
