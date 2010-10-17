@@ -19,6 +19,7 @@
 
 #include <windows.h>
 #include "ddraw.h"
+#include "palette.h"
 
 HRESULT ddraw_CreateSurface(void *This, LPDDSURFACEDESC DDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *DDSurface, IUnknown FAR * unkOuter);
 
@@ -73,6 +74,8 @@ typedef struct
     DWORD height;
     DWORD bpp;
     DWORD caps;
+
+    fakeDirectDrawPaletteObject *palette;
 
     void *surface;
     DWORD lPitch;

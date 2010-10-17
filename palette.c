@@ -24,8 +24,12 @@ ULONG AddRef(void *This);
 ULONG Release(void *This);
 HRESULT null();
 
-HRESULT ddraw_CreatePalette(void *This, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, LPDIRECTDRAWPALETTE FAR * lpDDPalette, IUnknown FAR * unkOuter)
+HRESULT ddraw_palette_SetEntries(void *_This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries);
+
+HRESULT ddraw_CreatePalette(void *_This, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, LPDIRECTDRAWPALETTE FAR * lpDDPalette, IUnknown FAR * unkOuter)
 {
+    fakeDirectDrawPaletteObject *This = (fakeDirectDrawPaletteObject *)_This;
+
     printf("DirectDraw::CreatePalette(This=%p, dwFlags=%d, DDColorArray=%p, DDPalette=%p, unkOuter=%p)\n", This, (int)dwFlags, lpDDColorArray, lpDDPalette, unkOuter);
 
     fakeDirectDrawPaletteObject *Palette = (fakeDirectDrawPaletteObject *)malloc(sizeof(fakeDirectDrawPaletteObject));
@@ -33,6 +37,8 @@ HRESULT ddraw_CreatePalette(void *This, DWORD dwFlags, LPPALETTEENTRY lpDDColorA
     Palette->Functions = &piface;
     printf(" Palette = %p\n", Palette);
     *lpDDPalette = (LPDIRECTDRAWPALETTE)Palette;
+
+    ddraw_palette_SetEntries(Palette, dwFlags, 0, 256, lpDDColorArray);
 
     return DD_OK;
 }
@@ -43,9 +49,19 @@ HRESULT ddraw_palette_GetEntries(void *This, DWORD dwFlags, DWORD dwBase, DWORD 
     return DD_OK;
 }
 
-HRESULT ddraw_palette_SetEntries(void *This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
+HRESULT ddraw_palette_SetEntries(void *_This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
 {
+    int i;
+
+    fakeDirectDrawPaletteObject *This = (fakeDirectDrawPaletteObject *)_This;
+
     printf("DirectDrawPalette::SetEntries(This=%p, dwFlags=%d, dwStartingEntry=%d, dwCount=%d, lpEntries=%p)\n", This, (int)dwFlags, (int)dwStartingEntry, (int)dwCount, lpEntries);
+
+    for(i=0;i<256;i++)
+    {
+        This->data[i] = (lpEntries[i].peBlue<<16)|(lpEntries[i].peGreen<<8)|lpEntries[i].peRed;
+    }
+
     return DD_OK;
 }
 

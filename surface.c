@@ -75,6 +75,7 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
     Surface->surface = NULL;
     Surface->glTex = NULL;
     Surface->caps = 0;
+    Surface->palette = NULL;
 
     if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
     {
@@ -172,7 +173,9 @@ HRESULT ddraw_surface_GetPalette(void *_This, LPDIRECTDRAWPALETTE FAR *lplpDDPal
 
 HRESULT ddraw_surface_SetPalette(void *_This, LPDIRECTDRAWPALETTE lpDDPalette)
 {
+    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
     printf("DirectDrawSurface::SetPalette(This=%p, lpDDPalette=%p)\n", _This, lpDDPalette);
+    This->palette = (fakeDirectDrawPaletteObject *)lpDDPalette;
     return DD_OK;
 }
 
@@ -222,7 +225,7 @@ HRESULT ddraw_surface_Unlock(void *_This, LPVOID lpRect)
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
 
-    if(This->caps & DDSCAPS_PRIMARYSURFACE)
+    if( (This->caps & DDSCAPS_PRIMARYSURFACE) && This->palette )
     {
 
         /* FIXME: temporary grayscale palette */
@@ -237,7 +240,7 @@ HRESULT ddraw_surface_Unlock(void *_This, LPVOID lpRect)
         {
             for(j=0; j<This->width; j++)
             {
-                This->glTex[i*This->width+j] = tmp_palette[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
+                This->glTex[i*This->width+j] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
             }
         }
 

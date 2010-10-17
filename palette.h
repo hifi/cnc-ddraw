@@ -38,6 +38,8 @@ typedef struct
 {
     fakeDirectDrawPalette *Functions;
 
+    int data[256];
+
     ULONG Ref;
 
 } fakeDirectDrawPaletteObject;
