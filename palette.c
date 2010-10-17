@@ -24,15 +24,15 @@ ULONG AddRef(void *This);
 ULONG Release(void *This);
 HRESULT null();
 
-HRESULT ddraw_CreatePalette(void *This, LPPALETTEENTRY DDColorArray, LPDIRECTDRAWPALETTE FAR * DDPalette, IUnknown FAR * unkOuter)
+HRESULT ddraw_CreatePalette(void *This, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, LPDIRECTDRAWPALETTE FAR * lpDDPalette, IUnknown FAR * unkOuter)
 {
-    printf("DirectDraw::CreatePalette(This=%p, DDColorArray=%p, DDPalette=%p, unkOuter=%p)\n", This, DDColorArray, DDPalette, unkOuter);
+    printf("DirectDraw::CreatePalette(This=%p, dwFlags=%d, DDColorArray=%p, DDPalette=%p, unkOuter=%p)\n", This, (int)dwFlags, lpDDColorArray, lpDDPalette, unkOuter);
 
     fakeDirectDrawPaletteObject *Palette = (fakeDirectDrawPaletteObject *)malloc(sizeof(fakeDirectDrawPaletteObject));
     Palette->Ref = 1;
     Palette->Functions = &piface;
     printf(" Palette = %p\n", Palette);
-    *DDPalette = (LPDIRECTDRAWPALETTE)Palette;
+    *lpDDPalette = (LPDIRECTDRAWPALETTE)Palette;
 
     return DD_OK;
 }
