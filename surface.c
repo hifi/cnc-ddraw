@@ -70,6 +70,7 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
     Surface->Functions = &siface;
 
     /* private stuff */
+    Surface->hDC = NULL;
     Surface->bpp = This->bpp;
     Surface->surface = NULL;
     Surface->caps = 0;
@@ -78,8 +79,27 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
     {
         if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
         {
+            PIXELFORMATDESCRIPTOR pfd;
+
+            printf("Creating primary surface and initializing OpenGL\n");
+
             Surface->width = This->width;
             Surface->height = This->height;
+
+            Surface->hDC = GetDC(This->hWnd);
+
+            memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+            pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+            pfd.nVersion = 1;
+            pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+            pfd.iPixelType = PFD_TYPE_RGBA;
+            pfd.cColorBits = 24;
+            pfd.cDepthBits = 16;
+            pfd.iLayerType = PFD_MAIN_PLANE;
+            SetPixelFormat( Surface->hDC, ChoosePixelFormat( Surface->hDC, &pfd ), &pfd );
+                
+            Surface->hRC = wglCreateContext( Surface->hDC );
+            wglMakeCurrent( Surface->hDC, Surface->hRC );
         }
 
         dump_ddscaps(lpDDSurfaceDesc->ddsCaps.dwCaps);
@@ -183,11 +203,21 @@ HRESULT ddraw_surface_Lock(void *_This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDS
     return DD_OK;
 }
 
-HRESULT ddraw_surface_Unlock(void *This, LPVOID lpRect)
+HRESULT ddraw_surface_Unlock(void *_This, LPVOID lpRect)
 {
+    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
 #if _DEBUG
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
+
+    if(This->caps & DDSCAPS_PRIMARYSURFACE)
+    {
+        /* clearing the screen for now */
+        glClearColor( 0.0f, 0.0f, 255.0f, 0.0f );
+        glClear( GL_COLOR_BUFFER_BIT );
+        SwapBuffers( This->hDC );
+    }
+
     return DD_OK;
 }
 

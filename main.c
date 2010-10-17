@@ -67,6 +67,9 @@ HRESULT ddraw_SetDisplayMode(void *_This, DWORD width, DWORD height, DWORD bpp)
     This->height = height;
     This->bpp = bpp;
 
+    MoveWindow(This->hWnd, 0, 0, This->width, This->height, TRUE);
+    SetWindowLong(This->hWnd, GWL_STYLE, WS_CAPTION | WS_POPUPWINDOW | WS_VISIBLE);
+
     return DD_OK;
 }
 
@@ -132,8 +135,12 @@ fakeDirectDraw iface =
     null  //WaitForVerticalBlank
 };
 
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
 HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter) 
 {
+    WNDCLASS wc;
+
     printf("DirectDrawCreate(lpGUID=%p, lplpDD=%p, pUnkOuter=%p)\n", lpGUID, lplpDD, pUnkOuter);
 
     fakeDirectDrawObject *This = (fakeDirectDrawObject *)malloc(sizeof(fakeDirectDrawObject));
@@ -142,5 +149,37 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;
 
+    This->hInstance = GetModuleHandle( 0 );
+
+    /* create dummy window */
+    wc.style = CS_OWNDC;
+    wc.lpfnWndProc = WndProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = This->hInstance;
+    wc.hIcon = LoadIcon( NULL, IDI_APPLICATION );
+    wc.hCursor = LoadCursor( NULL, IDC_ARROW );
+    wc.hbrBackground = 0;
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = "cnc-ddraw";
+    RegisterClass( &wc );
+    
+    This->hWnd = CreateWindow("cnc-ddraw", "cnc-ddraw", 0, 0, 0, 0, 0, NULL, NULL, This->hInstance, NULL );
+
     return DD_OK;
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+        case WM_CLOSE:
+            PostQuitMessage( 0 );
+        case WM_CREATE:
+        case WM_DESTROY:
+        case WM_KEYDOWN:
+            return 0;
+        default:
+            return DefWindowProc( hWnd, message, wParam, lParam );
+    }
 }

@@ -75,6 +75,9 @@ typedef struct
     DWORD caps;
     void *surface;
 
+    HDC hDC;
+    HGLRC hRC;
+
     ULONG Ref;
 
 } fakeDirectDrawSurfaceObject;

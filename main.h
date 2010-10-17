@@ -19,6 +19,8 @@
 
 #include <windows.h>
 #include "ddraw.h"
+#include <GL/gl.h>
+#include <GL/glu.h>
 
 typedef struct
 {
@@ -59,6 +61,9 @@ typedef struct
     DWORD width;
     DWORD height;
     DWORD bpp;
+
+    HINSTANCE hInstance;
+    HWND hWnd;
 
 } fakeDirectDrawObject;
 
