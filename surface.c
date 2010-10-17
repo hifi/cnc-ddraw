@@ -25,7 +25,8 @@ HRESULT QueryInterface(void *This, REFIID riid, void **obj);
 ULONG AddRef(void *This);
 HRESULT null();
 
-void dump_surface_desc_flags(LPDDSURFACEDESC lpDDSurfaceDesc);
+void dump_ddsd(DWORD);
+void dump_ddscaps(DWORD);
 
 ULONG ddraw_surface_AddRef(void *_This)
 {
@@ -62,30 +63,27 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
 
     printf("DirectDraw::CreateSurface(This=%p, lpDDSurfaceDesc=%p, lpDDSurface=%p, unkOuter=%p)\n", This, lpDDSurfaceDesc, lpDDSurface, unkOuter);
 
-    dump_surface_desc_flags(lpDDSurfaceDesc);
+    dump_ddsd(lpDDSurfaceDesc->dwFlags);
 
     fakeDirectDrawSurfaceObject *Surface = (fakeDirectDrawSurfaceObject *)malloc(sizeof(fakeDirectDrawSurfaceObject));
+
+    Surface->Functions = &siface;
+
+    /* private stuff */
+    Surface->bpp = This->bpp;
+    Surface->surface = NULL;
+    Surface->caps = 0;
 
     if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
     {
         if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
         {
-            printf("  DDSCAPS_PRIMARYSURFACE\n");
             Surface->width = This->width;
             Surface->height = This->height;
         }
-        if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN)
-        {
-            printf("  DDSCAPS_OFFSCREENPLAIN\n");
-        }
-        if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY)
-        {
-            printf("  DDSCAPS_VIDEOMEMORY\n");
-        }
-        if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_LOCALVIDMEM)
-        {
-            printf("  DDSCAPS_LOCALVIDMEM\n");
-        }
+
+        dump_ddscaps(lpDDSurfaceDesc->ddsCaps.dwCaps);
+        Surface->caps = lpDDSurfaceDesc->ddsCaps.dwCaps;
     }
 
     if( !(lpDDSurfaceDesc->dwFlags & DDSD_CAPS) || !(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) )
@@ -94,12 +92,6 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
         Surface->height = lpDDSurfaceDesc->dwHeight;
     }
 
-    Surface->Functions = &siface;
-
-    /* private stuff */
-    Surface->bpp = This->bpp;
-    Surface->surface = NULL;
-
     if(Surface->width && Surface->height)
     {
         Surface->surface = malloc(Surface->width * Surface->height * Surface->bpp / 8);
@@ -107,10 +99,10 @@ HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRE
 
     printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);
 
+    *lpDDSurface = (LPDIRECTDRAWSURFACE)Surface;
+
     Surface->Ref = 0;
     ddraw_surface_AddRef(Surface);
-
-    *lpDDSurface = (LPDIRECTDRAWSURFACE)Surface;
 
     return DD_OK;
 }
@@ -129,8 +121,9 @@ HRESULT ddraw_surface_Blt(void *This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpD
 
 HRESULT ddraw_surface_GetCaps(void *_This, LPDDSCAPS lpDDSCaps)
 {
+    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
     printf("DirectDrawSurface::GetCaps(This=%p, lpDDSCaps=%p)\n", _This, lpDDSCaps);
-    lpDDSCaps->dwCaps = 0x00000000l;
+    lpDDSCaps->dwCaps = This->caps;
     return DD_OK;
 }
 
@@ -228,74 +221,94 @@ fakeDirectDrawSurface siface =
     null  // ddraw_surface_UpdateOverlayZOrder
 };
 
-void dump_surface_desc_flags(LPDDSURFACEDESC lpDDSurfaceDesc)
+void dump_ddscaps(DWORD dwCaps)
 {
-    if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
+    if(dwCaps & DDSCAPS_PRIMARYSURFACE)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_CAPS\n");
+        printf("    DDSCAPS_PRIMARYSURFACE\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_HEIGHT)
+    if(dwCaps & DDSCAPS_OFFSCREENPLAIN)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_HEIGHT\n");
+        printf("    DDSCAPS_OFFSCREENPLAIN\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_WIDTH)
+    if(dwCaps & DDSCAPS_VIDEOMEMORY)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_WIDTH\n");
+        printf("    DDSCAPS_VIDEOMEMORY\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_PITCH)
+    if(dwCaps & DDSCAPS_LOCALVIDMEM)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_PITCH\n");
+        printf("    DDSCAPS_LOCALVIDMEM\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_BACKBUFFERCOUNT)
+}
+
+void dump_ddsd(DWORD dwFlags)
+{
+    if(dwFlags & DDSD_CAPS)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_BACKBUFFERCOUNT\n");
+        printf("    DDSD_CAPS\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_ZBUFFERBITDEPTH)
+    if(dwFlags & DDSD_HEIGHT)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_ZBUFFERBITDEPTH\n");
+        printf("    DDSD_HEIGHT\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_ALPHABITDEPTH)
+    if(dwFlags & DDSD_WIDTH)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_ALPHABITDEPTH\n");
+        printf("    DDSD_WIDTH\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_LPSURFACE)
+    if(dwFlags & DDSD_PITCH)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_LPSURFACE\n");
+        printf("    DDSD_PITCH\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_PIXELFORMAT)
+    if(dwFlags & DDSD_BACKBUFFERCOUNT)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_PIXELFORMAT\n");
+        printf("    DDSD_BACKBUFFERCOUNT\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_CKDESTOVERLAY)
+    if(dwFlags & DDSD_ZBUFFERBITDEPTH)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_CKDESTOVERLAY\n");
+        printf("    DDSD_ZBUFFERBITDEPTH\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_CKDESTBLT)
+    if(dwFlags & DDSD_ALPHABITDEPTH)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_CKDESTBLT\n");
+        printf("    DDSD_ALPHABITDEPTH\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_CKSRCOVERLAY)
+    if(dwFlags & DDSD_LPSURFACE)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_CKSRCOVERLAY\n");
+        printf("    DDSD_LPSURFACE\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_CKSRCBLT)
+    if(dwFlags & DDSD_PIXELFORMAT)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_CKSRCBLT\n");
+        printf("    DDSD_PIXELFORMAT\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_MIPMAPCOUNT)
+    if(dwFlags & DDSD_CKDESTOVERLAY)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_MIPMAPCOUNT\n");
+        printf("    DDSD_CKDESTOVERLAY\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_REFRESHRATE)
+    if(dwFlags & DDSD_CKDESTBLT)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_REFRESHRATE\n");
+        printf("    DDSD_CKDESTBLT\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_LINEARSIZE)
+    if(dwFlags & DDSD_CKSRCOVERLAY)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_LINEARSIZE\n");
+        printf("    DDSD_CKSRCOVERLAY\n");
     }
-    if(lpDDSurfaceDesc->dwFlags & DDSD_ALL)
+    if(dwFlags & DDSD_CKSRCBLT)
     {
-        printf(" lpDDSurfaceDesc->dwFlags: DDSD_ALL\n");
+        printf("    DDSD_CKSRCBLT\n");
+    }
+    if(dwFlags & DDSD_MIPMAPCOUNT)
+    {
+        printf("    DDSD_MIPMAPCOUNT\n");
+    }
+    if(dwFlags & DDSD_REFRESHRATE)
+    {
+        printf("    DDSD_REFRESHRATE\n");
+    }
+    if(dwFlags & DDSD_LINEARSIZE)
+    {
+        printf("    DDSD_LINEARSIZE\n");
+    }
+    if(dwFlags & DDSD_ALL)
+    {
+        printf("    DDSD_ALL\n");
     }
 }

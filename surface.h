@@ -72,6 +72,7 @@ typedef struct
     DWORD width;
     DWORD height;
     DWORD bpp;
+    DWORD caps;
     void *surface;
 
     ULONG Ref;
