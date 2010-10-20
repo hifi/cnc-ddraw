@@ -31,7 +31,7 @@ typedef struct
 
     /* IDirectDraw */
     HRESULT (*Compact)(void *);
-    HRESULT (*CreateClipper)(void *);
+    HRESULT (*CreateClipper)(void *, DWORD, LPDIRECTDRAWCLIPPER FAR *, IUnknown FAR *);
     HRESULT (*CreatePalette)(void *, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR *, IUnknown FAR *);
     HRESULT (*CreateSurface)(void *, LPDDSURFACEDESC, LPDIRECTDRAWSURFACE FAR *, IUnknown FAR *);
     HRESULT (*DuplicateSurface)(void *);

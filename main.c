@@ -21,6 +21,7 @@
 #include "main.h"
 #include "palette.h"
 #include "surface.h"
+#include "clipper.h"
 
 HRESULT ddraw_GetCaps(void *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps)
 {
@@ -131,7 +132,7 @@ fakeDirectDraw iface =
     ddraw_Release,
     /* IDirectDraw */
     null, //Compact,
-    null, //CreateClipper,
+    ddraw_CreateClipper,
     ddraw_CreatePalette,
     ddraw_CreateSurface,
     null, //DuplicateSurface,
@@ -154,6 +155,10 @@ fakeDirectDraw iface =
 
 HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter) 
 {
+#if _DEBUG
+    freopen("stdout.txt", "w", stdout);
+#endif
+
     printf("DirectDrawCreate(lpGUID=%p, lplpDD=%p, pUnkOuter=%p)\n", lpGUID, lplpDD, pUnkOuter);
 
     fakeDirectDrawObject *This = (fakeDirectDrawObject *)malloc(sizeof(fakeDirectDrawObject));
