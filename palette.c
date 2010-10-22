@@ -39,7 +39,11 @@ HRESULT ddraw_palette_SetEntries(void *_This, DWORD dwFlags, DWORD dwStartingEnt
 
     for(i=0;i<256;i++)
     {
+#if USE_OPENGL
         This->data[i] = (lpEntries[i].peBlue<<16)|(lpEntries[i].peGreen<<8)|lpEntries[i].peRed;
+#else
+        This->data[i] = (lpEntries[i].peRed<<16)|(lpEntries[i].peGreen<<8)|(lpEntries[i].peBlue);
+#endif
     }
 
     return DD_OK;
@@ -55,7 +59,7 @@ ULONG ddraw_palette_AddRef(void *_This)
 {
     fakeDirectDrawPaletteObject *This = (fakeDirectDrawPaletteObject *)_This;
 
-    printf("DirectDraw::AddRef(This=%p)\n", This);
+    printf("DirectDrawPalette::AddRef(This=%p)\n", This);
 
     This->Ref++;
 

@@ -75,20 +75,23 @@ typedef struct
     DWORD bpp;
     DWORD caps;
 
+    fakeDirectDrawObject *parent;
     fakeDirectDrawPaletteObject *palette;
 
     void *surface;
     DWORD lPitch;
     DWORD lXPitch;
 
-    HANDLE glThread;
-    BOOL glRun;
+    HWND hWnd;
+    HANDLE dThread;
+    BOOL dRun;
     HANDLE flipEvent;
 
-    HWND hWnd;
+#if USE_OPENGL
     HDC hDC;
     HGLRC hRC;
     int *glTex;
+#endif
 
     ULONG Ref;
 

@@ -64,7 +64,19 @@ HRESULT ddraw_SetCooperativeLevel(void *_This, HWND hWnd, DWORD dwFlags)
     fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
     printf("DirectDraw::SetCooperativeLevel(This=%p, hWnd=0x%08X, dwFlags=0x%08X)\n", This, (unsigned int)hWnd, (unsigned int)dwFlags);
 
+    /* Red Alert for some weird reason does this on Windows XP */
+    if(hWnd == NULL)
+    {
+        return DDERR_INVALIDPARAMS;
+    }
+
     This->hWnd = hWnd;
+
+    if(IDirectDraw_SetCooperativeLevel(This->real_ddraw, hWnd, DDSCL_NORMAL) != DD_OK)
+    {
+        printf(" internal SetCooperativeLevel failed\n");
+        return DDERR_GENERIC;
+    }
 
     return DD_OK;
 }
@@ -77,6 +89,8 @@ HRESULT ddraw_SetDisplayMode(void *_This, DWORD width, DWORD height, DWORD bpp)
 
     This->width = width;
     This->height = height;
+    This->width = 1024;
+    This->height = 768;
     This->bpp = bpp;
 
     MoveWindow(This->hWnd, 0, 0, This->width, This->height, TRUE);
@@ -111,6 +125,7 @@ ULONG ddraw_Release(void *_This)
 
     if(This->Ref == 0)
     {
+        IDirectDraw_Release(This->real_ddraw);
         free(This);
         return 0;
     }
@@ -153,20 +168,40 @@ fakeDirectDraw iface =
     null  //WaitForVerticalBlank
 };
 
+int stdout_open = 0;
 HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter) 
 {
 #if _DEBUG
-    freopen("stdout.txt", "w", stdout);
+    if(!stdout_open)
+    {
+        freopen("stdout.txt", "w", stdout);
+        setvbuf(stdout, NULL, _IONBF, 0);
+        stdout_open = 1;
+    }
 #endif
 
     printf("DirectDrawCreate(lpGUID=%p, lplpDD=%p, pUnkOuter=%p)\n", lpGUID, lplpDD, pUnkOuter);
 
     fakeDirectDrawObject *This = (fakeDirectDrawObject *)malloc(sizeof(fakeDirectDrawObject));
-    This->Ref = 1;
     This->Functions = &iface;
     This->hWnd = NULL;
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;
+
+    This->real_dll = LoadLibrary("system32\\ddraw.dll");
+    if(!This->real_dll)
+    {
+        return DDERR_UNSUPPORTED;
+    }
+
+    This->real_DirectDrawCreate = (HRESULT WINAPI (*)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*))GetProcAddress(This->real_dll, "DirectDrawCreate");
+    if(This->real_DirectDrawCreate(NULL, &This->real_ddraw, NULL) != DD_OK)
+    {
+        return DDERR_UNSUPPORTED;
+    }
+
+    This->Ref = 0;
+    ddraw_AddRef(This);
 
     return DD_OK;
 }

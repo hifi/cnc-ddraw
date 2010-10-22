@@ -64,6 +64,10 @@ typedef struct
 
     HWND hWnd;
 
+    HMODULE real_dll;
+    LPDIRECTDRAW real_ddraw;
+    HRESULT WINAPI (*real_DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
+
 } fakeDirectDrawObject;
 
 #endif
