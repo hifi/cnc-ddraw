@@ -19,6 +19,7 @@
 
 #include <windows.h>
 #include "ddraw.h"
+#include "main.h"
 
 typedef struct
 {
@@ -46,6 +47,6 @@ typedef struct
 
 extern fakeDirectDrawClipper ciface;
 
-HRESULT ddraw_CreateClipper(void *_This, DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR *lplpDDClipper, IUnknown FAR *pUnkOuter );
+HRESULT __stdcall ddraw_CreateClipper(IDirectDrawImpl *This, DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR *lplpDDClipper, IUnknown FAR *pUnkOuter );
 
 #endif

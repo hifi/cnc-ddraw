@@ -23,6 +23,38 @@
 #include "surface.h"
 #include "clipper.h"
 
+HRESULT __stdcall ddraw_Compact(IDirectDrawImpl *This)
+{
+    printf("DirectDraw::Compact(This=%p)\n", This);
+
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_DuplicateSurface(IDirectDrawImpl *This, LPDIRECTDRAWSURFACE src, LPDIRECTDRAWSURFACE *dest)
+{
+    printf("DirectDraw::DuplicateSurface(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_EnumDisplayModes(IDirectDrawImpl *This, DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMMODESCALLBACK d)
+{
+    printf("DirectDraw::EnumDisplayModes(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_EnumSurfaces(IDirectDrawImpl *This, DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMSURFACESCALLBACK d)
+{
+    printf("DirectDraw::EnumSurfaces(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_FlipToGDISurface(IDirectDrawImpl *This)
+{
+    printf("DirectDraw::FlipToGDISurface(This=%p)\n", This);
+
+    return DD_OK;
+}
+
 HRESULT __stdcall ddraw_GetCaps(IDirectDrawImpl *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps)
 {
     printf("DirectDraw::GetCaps(This=%p, lpDDDriverCaps=%p, lpDDEmulCaps=%p)\n", This, lpDDDriverCaps, lpDDEmulCaps);
@@ -52,10 +84,51 @@ HRESULT __stdcall ddraw_GetCaps(IDirectDrawImpl *This, LPDDCAPS lpDDDriverCaps, 
     return DD_OK;
 }
 
+HRESULT __stdcall ddraw_GetDisplayMode(IDirectDrawImpl *This, LPDDSURFACEDESC a)
+{
+    printf("DirectDraw::GetDisplayMode(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_GetFourCCCodes(IDirectDrawImpl *This, LPDWORD a, LPDWORD b)
+{
+    printf("DirectDraw::GetFourCCCodes(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_GetGDISurface(IDirectDrawImpl *This, LPDIRECTDRAWSURFACE *a)
+{
+    printf("DirectDraw::GetGDISurface(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_GetMonitorFrequency(IDirectDrawImpl *This, LPDWORD a)
+{
+    printf("DirectDraw::GetMonitorFrequency(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_GetScanLine(IDirectDrawImpl *This, LPDWORD a)
+{
+    printf("DirectDraw::GetScanLine(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_GetVerticalBlankStatus(IDirectDrawImpl *This, LPBOOL a)
+{
+    printf("DirectDraw::GetVerticalBlankStatus(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_Initialize(IDirectDrawImpl *This, GUID *a)
+{
+    printf("DirectDraw::Initialize(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
 HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 {
     printf("DirectDraw::RestoreDisplayMode(This=%p)\n", This);
-
     return DD_OK;
 }
 
@@ -71,11 +144,13 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
 
     This->hWnd = hWnd;
 
+#ifndef USE_OPENGL
     if(IDirectDraw_SetCooperativeLevel(This->real_ddraw, hWnd, DDSCL_NORMAL) != DD_OK)
     {
         printf(" internal SetCooperativeLevel failed\n");
         return DDERR_GENERIC;
     }
+#endif
 
     return DD_OK;
 }
@@ -90,6 +165,12 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
     MoveWindow(This->hWnd, 0, 0, This->width, This->height, TRUE);
 
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HANDLE b)
+{
+    printf("DirectDraw::WaitForVerticalBlank(This=%p, ...)\n", This);
     return DD_OK;
 }
 
@@ -116,7 +197,9 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 
     if(This->Ref == 0)
     {
+#ifndef USE_OPENGL
         IDirectDraw_Release(This->real_ddraw);
+#endif
         free(This);
         return 0;
     }
@@ -138,26 +221,26 @@ struct IDirectDrawImplVtbl iface =
     ddraw_AddRef,
     ddraw_Release,
     /* IDirectDrawImpl */
-    null, //Compact,
+    ddraw_Compact,
     ddraw_CreateClipper,
     ddraw_CreatePalette,
     ddraw_CreateSurface,
-    null, //DuplicateSurface,
-    null, //EnumDisplayModes,
-    null, //EnumSurfaces,
-    null, //FlipToGDISurface,
+    ddraw_DuplicateSurface,
+    ddraw_EnumDisplayModes,
+    ddraw_EnumSurfaces,
+    ddraw_FlipToGDISurface,
     ddraw_GetCaps,
-    null, //GetDisplayMode,
-    null, //GetFourCCCodes,
-    null, //GetGDISurface,
-    null, //GetMonitorFrequency,
-    null, //GetScanLine,
-    null, //GetVerticalBlankStatus,
-    null, //Initialize,
+    ddraw_GetDisplayMode,
+    ddraw_GetFourCCCodes,
+    ddraw_GetGDISurface,
+    ddraw_GetMonitorFrequency,
+    ddraw_GetScanLine,
+    ddraw_GetVerticalBlankStatus,
+    ddraw_Initialize,
     ddraw_RestoreDisplayMode,
     ddraw_SetCooperativeLevel,
     ddraw_SetDisplayMode,
-    null  //WaitForVerticalBlank
+    ddraw_WaitForVerticalBlank
 };
 
 int stdout_open = 0;
@@ -180,6 +263,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;
 
+#ifndef USE_OPENGL
     This->real_dll = LoadLibrary("system32\\ddraw.dll");
     if(!This->real_dll)
     {
@@ -191,6 +275,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     {
         return DDERR_UNSUPPORTED;
     }
+#endif
 
     This->Ref = 0;
     ddraw_AddRef(This);

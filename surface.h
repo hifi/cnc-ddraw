@@ -21,7 +21,7 @@
 #include "ddraw.h"
 #include "palette.h"
 
-HRESULT ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC DDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *DDSurface, IUnknown FAR * unkOuter);
+HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC DDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *DDSurface, IUnknown FAR * unkOuter);
 
 struct IDirectDrawSurfaceImpl;
 struct IDirectDrawSurfaceImplVtbl;

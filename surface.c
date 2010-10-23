@@ -23,7 +23,7 @@
 /* from main */
 HRESULT null();
 
-DWORD WINAPI ogl_Thread(void *_This);
+DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This);
 DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This);
 void dump_ddsd(DWORD);
 void dump_ddscaps(DWORD);
@@ -246,7 +246,7 @@ struct IDirectDrawSurfaceImplVtbl siface =
     null  // ddraw_surface_UpdateOverlayZOrder
 };
 
-HRESULT ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *lpDDSurface, IUnknown FAR * unkOuter)
+HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *lpDDSurface, IUnknown FAR * unkOuter)
 {
     printf("DirectDraw::CreateSurface(This=%p, lpDDSurfaceDesc=%p, lpDDSurface=%p, unkOuter=%p)\n", This, lpDDSurfaceDesc, lpDDSurface, unkOuter);
 
@@ -277,7 +277,7 @@ HRESULT ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpDDSurfaceDe
             Surface->height = This->height;
             Surface->hWnd = This->hWnd;
 #if USE_OPENGL
-            Surface->dThread = CreateThread(NULL, 0, ogl_Thread, (void *)Surface, 0, NULL);
+            Surface->dThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ogl_Thread, (void *)Surface, 0, NULL);
 #else
             Surface->dThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dd_Thread, (void *)Surface, 0, NULL);
 #endif

@@ -70,10 +70,8 @@ fakeDirectDrawClipper ciface =
     null  // ddraw_clipper_SetHwnd
 };
 
-HRESULT ddraw_CreateClipper(void *_This, DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR *lplpDDClipper, IUnknown FAR *pUnkOuter )
+HRESULT __stdcall ddraw_CreateClipper(IDirectDrawImpl *This, DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR *lplpDDClipper, IUnknown FAR *pUnkOuter )
 {
-    fakeDirectDrawClipperObject *This = (fakeDirectDrawClipperObject *)_This;
-
     printf("DirectDraw::CreateClipper(This=%p, dwFlags=%d, DDClipper=%p, unkOuter=%p)\n", This, (int)dwFlags, lplpDDClipper, pUnkOuter);
 
     fakeDirectDrawClipperObject *Clipper = (fakeDirectDrawClipperObject *)malloc(sizeof(fakeDirectDrawClipperObject));
