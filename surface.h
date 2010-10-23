@@ -26,6 +26,8 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC DDS
 struct IDirectDrawSurfaceImpl;
 struct IDirectDrawSurfaceImplVtbl;
 
+extern struct IDirectDrawSurfaceImpl *ddraw_primary;
+
 typedef struct IDirectDrawSurfaceImpl
 {
     struct IDirectDrawSurfaceImplVtbl *lpVtbl;

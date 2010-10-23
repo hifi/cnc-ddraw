@@ -23,6 +23,13 @@
 #include "surface.h"
 #include "clipper.h"
 
+/* from mouse.c */
+void mouse_init(HWND);
+void mouse_lock();
+void mouse_unlock();
+
+IDirectDrawImpl *ddraw = NULL;
+
 HRESULT __stdcall ddraw_Compact(IDirectDrawImpl *This)
 {
     printf("DirectDraw::Compact(This=%p)\n", This);
@@ -132,6 +139,92 @@ HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
     return DD_OK;
 }
 
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    switch(uMsg)
+    {
+        case WM_KEYDOWN:
+            if(wParam == VK_CONTROL)
+            {
+                ddraw->key_ctrl = TRUE;
+            }
+            if(wParam == VK_MENU)
+            {
+                ddraw->key_alt = TRUE;
+            }
+            if(ddraw->key_alt && ddraw->key_ctrl)
+            {
+                mouse_unlock();
+            }
+            break;
+        case WM_KEYUP:
+            if(wParam == VK_CONTROL)
+            {
+                ddraw->key_ctrl = FALSE;
+            }
+            if(wParam == VK_MENU)
+            {
+                ddraw->key_alt = FALSE;
+            }
+            break;
+        case WM_LBUTTONDOWN:
+            if(!ddraw->locked)
+            {
+                mouse_lock();
+                return DefWindowProc(hWnd, uMsg, wParam, lParam);
+            }
+            break;
+        case WM_MOUSEMOVE:
+            if(ddraw->locked)
+            {
+                ddraw->cursor.x = LOWORD(lParam);
+                ddraw->cursor.y = HIWORD(lParam);
+            }
+            break;
+        case WM_SETFOCUS:
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        case WM_KILLFOCUS:
+            mouse_unlock();
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        case WM_PAINT:
+            if(ddraw_primary)
+            {
+                SetEvent(ddraw_primary->flipEvent);
+            }
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+
+        case WM_MOVE:
+            ddraw->winpos.x = LOWORD(lParam);
+            ddraw->winpos.y = HIWORD(lParam);
+            if(ddraw->winpos.x < 0)
+            {
+                ddraw->winpos.x = 0;
+            }
+            if(ddraw->winpos.y < 0)
+            {
+                ddraw->winpos.y = 0;
+            }
+
+            if(ddraw_primary)
+            {
+                SetEvent(ddraw_primary->flipEvent);
+            }
+            break;
+
+        case WM_WINDOWPOSCHANGED:
+            GetClientRect(ddraw->hWnd, &ddraw->cursorclip);
+
+            POINT pt = { ddraw->cursorclip.left, ddraw->cursorclip.top };
+            POINT pt2 = { ddraw->cursorclip.right, ddraw->cursorclip.bottom };
+            ClientToScreen(ddraw->hWnd, &pt);
+            ClientToScreen(ddraw->hWnd, &pt2);
+            SetRect(&ddraw->cursorclip, pt.x, pt.y, pt2.x, pt2.y);
+            break;
+    }
+
+    return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+}
+
 HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DWORD dwFlags)
 {
     printf("DirectDraw::SetCooperativeLevel(This=%p, hWnd=0x%08X, dwFlags=0x%08X)\n", This, (unsigned int)hWnd, (unsigned int)dwFlags);
@@ -142,7 +235,12 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
         return DDERR_INVALIDPARAMS;
     }
 
+    mouse_init(hWnd);
+
     This->hWnd = hWnd;
+
+    This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
+    SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
 
 #ifndef USE_OPENGL
     if(IDirectDraw_SetCooperativeLevel(This->real_ddraw, hWnd, DDSCL_NORMAL) != DD_OK)
@@ -159,11 +257,29 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 {
     printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
 
+    /* currently we only support 8 bit modes */
+    if(bpp != 8)
+    {
+        return DDERR_INVALIDMODE;
+    }
+
     This->width = width;
     This->height = height;
     This->bpp = bpp;
 
+    SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_POPUPWINDOW | WS_CAPTION);
     MoveWindow(This->hWnd, 0, 0, This->width, This->height, TRUE);
+
+    RECT rcClient, rcWindow;
+    POINT ptDiff;
+    GetClientRect(This->hWnd, &rcClient);
+    GetWindowRect(This->hWnd, &rcWindow);
+    ptDiff.x = (rcWindow.right - rcWindow.left) - rcClient.right;
+    ptDiff.y = (rcWindow.bottom - rcWindow.top) - rcClient.bottom;
+
+    MoveWindow(This->hWnd, rcWindow.left, rcWindow.top, This->width + ptDiff.x, This->height + ptDiff.y, TRUE);
+
+    mouse_unlock();
 
     return DD_OK;
 }
@@ -203,6 +319,7 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
         IDirectDraw_Release(This->real_ddraw);
 #endif
         free(This);
+        ddraw = NULL;
         return 0;
     }
 
@@ -250,13 +367,18 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 #endif
 
+    if(ddraw)
+    {
+        return DDERR_DIRECTDRAWALREADYCREATED;
+    }
+
     printf("DirectDrawCreate(lpGUID=%p, lplpDD=%p, pUnkOuter=%p)\n", lpGUID, lplpDD, pUnkOuter);
 
-    IDirectDrawImpl *This = (IDirectDrawImpl *)HeapAlloc(GetProcessHeap(), 0, sizeof(IDirectDrawImpl));
+    IDirectDrawImpl *This = (IDirectDrawImpl *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectDrawImpl));
     This->lpVtbl = &iface;
-    This->hWnd = NULL;
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;
+    ddraw = This;
 
 #ifndef USE_OPENGL
     This->real_dll = LoadLibrary("system32\\ddraw.dll");

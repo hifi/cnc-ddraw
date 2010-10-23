@@ -25,6 +25,8 @@ DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This);
 void dump_ddsd(DWORD);
 void dump_ddscaps(DWORD);
 
+IDirectDrawSurfaceImpl *ddraw_primary = NULL;
+
 HRESULT __stdcall ddraw_surface_QueryInterface(IDirectDrawSurfaceImpl *This, REFIID riid, void **obj)
 {
     printf("DirectDrawSurface::QueryInterface(This=%p, riid=%08X, obj=%p)\n", This, (unsigned int)riid, obj);
@@ -422,6 +424,8 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
     {
         if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
         {
+            ddraw_primary = Surface;
+
             Surface->width = This->width;
             Surface->height = This->height;
             Surface->hWnd = This->hWnd;
@@ -532,7 +536,6 @@ DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
     LPDIRECTDRAWSURFACE primary;
     LPDIRECTDRAWCLIPPER clipper;
     DWORD width;
-    POINT pt;
 
     memset(&ddsd, 0, sizeof(DDSURFACEDESC));
     ddsd.dwSize = sizeof(DDSURFACEDESC);
@@ -560,9 +563,6 @@ DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
         if(!This->dRun)
             break;
 
-        pt.x = pt.y = 0;
-        //ClientToScreen(This->hWnd, &pt);
-
         if(IDirectDrawSurface_Lock(primary, NULL, &ddsd, DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL) != DD_OK)
             continue;
 
@@ -571,7 +571,7 @@ DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
         {
             for(j=0; j<This->width; j++)
             {
-                ((int *)ddsd.lpSurface)[(i+pt.y)*width+(j+pt.x)] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
+                ((int *)ddsd.lpSurface)[(i+This->parent->winpos.y)*width+(j+This->parent->winpos.x)] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
             }
         }
 

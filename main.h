@@ -25,6 +25,8 @@
 struct IDirectDrawImpl;
 struct IDirectDrawImplVtbl;
 
+extern struct IDirectDrawImpl *ddraw;
+
 typedef struct IDirectDrawImpl
 {
     struct IDirectDrawImplVtbl *lpVtbl;
@@ -36,6 +38,14 @@ typedef struct IDirectDrawImpl
     DWORD bpp;
 
     HWND hWnd;
+    LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);
+    POINT winpos;
+    POINT cursor;
+    RECT cursorclip;
+    BOOL locked;
+
+    BOOL key_ctrl;
+    BOOL key_alt;
 
     HMODULE real_dll;
     LPDIRECTDRAW real_ddraw;
