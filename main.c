@@ -170,7 +170,9 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
 HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HANDLE b)
 {
+#if _DEBUG
     printf("DirectDraw::WaitForVerticalBlank(This=%p, ...)\n", This);
+#endif
     return DD_OK;
 }
 

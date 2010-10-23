@@ -20,9 +20,6 @@
 #include "main.h"
 #include "surface.h"
 
-/* from main */
-HRESULT null();
-
 DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This);
 DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This);
 void dump_ddsd(DWORD);
@@ -81,6 +78,12 @@ HRESULT __stdcall ddraw_surface_AddAttachedSurface(IDirectDrawSurfaceImpl *This,
     return DD_OK;
 }
 
+HRESULT __stdcall ddraw_surface_AddOverlayDirtyRect(IDirectDrawSurfaceImpl *This, LPRECT a)
+{
+    printf("DirectDrawSurface::AddOverlayDirtyRect(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
 HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
 {
     IDirectDrawSurfaceImpl *Source = (IDirectDrawSurfaceImpl *)lpDDSrcSurface;
@@ -129,10 +132,90 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
     return DD_OK;
 }
 
+HRESULT __stdcall ddraw_surface_BltBatch(IDirectDrawSurfaceImpl *This, LPDDBLTBATCH a, DWORD b, DWORD c)
+{
+    printf("IDirectDrawSurface::BltBatch(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_BltFast(IDirectDrawSurfaceImpl *This, DWORD a, DWORD b, LPDIRECTDRAWSURFACE c, LPRECT d, DWORD e)
+{
+    printf("IDirectDrawSurface::BltFast(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_DeleteAttachedSurface(IDirectDrawSurfaceImpl *This, DWORD a, LPDIRECTDRAWSURFACE b)
+{
+    printf("IDirectDrawSurface::DeleteAttachedSurface(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_EnumAttachedSurfaces(IDirectDrawSurfaceImpl *This, LPVOID a, LPDDENUMSURFACESCALLBACK b)
+{
+    printf("IDirectDrawSurface::EnumAttachedSurfaces(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_EnumOverlayZOrders(IDirectDrawSurfaceImpl *This, DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK c)
+{
+    printf("IDirectDrawSurface::EnumOverlayZOrders(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_Flip(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWSURFACE a, DWORD b)
+{
+    printf("IDirectDrawSurface::Flip(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_GetAttachedSurface(IDirectDrawSurfaceImpl *This, LPDDSCAPS a, LPDIRECTDRAWSURFACE FAR *b)
+{
+    printf("IDirectDrawSurface::GetAttachedSurface(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_GetBltStatus(IDirectDrawSurfaceImpl *This, DWORD a)
+{
+#if _DEBUG
+    printf("IDirectDrawSurface::GetBltStatus(This=%p, ...)\n", This);
+#endif
+    return DD_OK;
+}
+
 HRESULT __stdcall ddraw_surface_GetCaps(IDirectDrawSurfaceImpl *This, LPDDSCAPS lpDDSCaps)
 {
     printf("DirectDrawSurface::GetCaps(This=%p, lpDDSCaps=%p)\n", This, lpDDSCaps);
     lpDDSCaps->dwCaps = This->caps;
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_GetClipper(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWCLIPPER FAR *a)
+{
+    printf("IDirectDrawSurface::GetClipper(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_GetColorKey(IDirectDrawSurfaceImpl *This, DWORD a, LPDDCOLORKEY b)
+{
+    printf("IDirectDrawSurface::GetColorKey(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_GetDC(IDirectDrawSurfaceImpl *This, HDC FAR *a)
+{
+    printf("IDirectDrawSurface::GetDC(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_GetFlipStatus(IDirectDrawSurfaceImpl *This, DWORD a)
+{
+    printf("IDirectDrawSurface::GetFlipStatus(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_GetOverlayPosition(IDirectDrawSurfaceImpl *This, LPLONG a, LPLONG b)
+{
+    printf("IDirectDrawSurface::GetOverlayPosition(This=%p, ...)\n", This);
     return DD_OK;
 }
 
@@ -142,10 +225,27 @@ HRESULT __stdcall ddraw_surface_GetPalette(IDirectDrawSurfaceImpl *This, LPDIREC
     return DD_OK;
 }
 
-HRESULT __stdcall ddraw_surface_SetPalette(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWPALETTE lpDDPalette)
+HRESULT __stdcall ddraw_surface_GetPixelFormat(IDirectDrawSurfaceImpl *This, LPDDPIXELFORMAT a)
 {
-    printf("DirectDrawSurface::SetPalette(This=%p, lpDDPalette=%p)\n", This, lpDDPalette);
-    This->palette = (IDirectDrawPaletteImpl *)lpDDPalette;
+    printf("IDirectDrawSurface::GetPixelFormat(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_GetSurfaceDesc(IDirectDrawSurfaceImpl *This, LPDDSURFACEDESC a)
+{
+    printf("IDirectDrawSurface::GetSurfaceDesc(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_Initialize(IDirectDrawSurfaceImpl *This, LPDIRECTDRAW a, LPDDSURFACEDESC b)
+{
+    printf("IDirectDrawSurface::Initialize(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_IsLost(IDirectDrawSurfaceImpl *This)
+{
+    printf("IDirectDrawSurface::IsLost(This=%p)\n", This);
     return DD_OK;
 }
 
@@ -184,6 +284,43 @@ HRESULT __stdcall ddraw_surface_Lock(IDirectDrawSurfaceImpl *This, LPRECT lpDest
     return DD_OK;
 }
 
+HRESULT __stdcall ddraw_surface_ReleaseDC(IDirectDrawSurfaceImpl *This, HDC a)
+{
+    printf("DirectDrawSurface::ReleaseDC(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_Restore(IDirectDrawSurfaceImpl *This)
+{
+    printf("DirectDrawSurface::Restore(This=%p)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_SetClipper(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWCLIPPER a)
+{
+    printf("DirectDrawSurface::SetClipper(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_SetColorKey(IDirectDrawSurfaceImpl *This, DWORD a, LPDDCOLORKEY b)
+{
+    printf("DirectDrawSurface::SetColorKey(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_SetOverlayPosition(IDirectDrawSurfaceImpl *This, LONG a, LONG b)
+{
+    printf("DirectDrawSurface::SetOverlayPosition(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_SetPalette(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWPALETTE lpDDPalette)
+{
+    printf("DirectDrawSurface::SetPalette(This=%p, lpDDPalette=%p)\n", This, lpDDPalette);
+    This->palette = (IDirectDrawPaletteImpl *)lpDDPalette;
+    return DD_OK;
+}
+
 HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPVOID lpRect)
 {
 #if _DEBUG
@@ -198,9 +335,21 @@ HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPVOID lpRe
     return DD_OK;
 }
 
-HRESULT __stdcall ddraw_surface_Restore(IDirectDrawSurfaceImpl *This)
+HRESULT __stdcall ddraw_surface_UpdateOverlay(IDirectDrawSurfaceImpl *This, LPRECT a, LPDIRECTDRAWSURFACE b, LPRECT c, DWORD d, LPDDOVERLAYFX e)
 {
-    printf("DirectDrawSurface::Restore(This=%p)\n", This);
+    printf("DirectDrawSurface::UpdateOverlay(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_UpdateOverlayDisplay(IDirectDrawSurfaceImpl *This, DWORD a)
+{
+    printf("DirectDrawSurface::UpdateOverlayDisplay(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_UpdateOverlayZOrder(IDirectDrawSurfaceImpl *This, DWORD a, LPDIRECTDRAWSURFACE b)
+{
+    printf("DirectDrawSurface::UpdateOverlayZOrder(This=%p, ...)\n", This);
     return DD_OK;
 }
 
@@ -212,38 +361,38 @@ struct IDirectDrawSurfaceImplVtbl siface =
     ddraw_surface_Release,
     /* IDirectDrawSurface */
     ddraw_surface_AddAttachedSurface,
-    null, // ddraw_surface_AddOverlayDirtyRect
+    ddraw_surface_AddOverlayDirtyRect,
     ddraw_surface_Blt,
-    null, // ddraw_surface_BltBatch
-    null, // ddraw_surface_BltFast
-    null, // ddraw_surface_DeleteAttachedSurface
-    null, // ddraw_surface_EnumAttachedSurfaces
-    null, // ddraw_surface_EnumOverlayZOrders
-    null, // ddraw_surface_Flip
-    null, // ddraw_surface_GetAttachedSurface
-    null, // ddraw_surface_GetBltStatus
+    ddraw_surface_BltBatch,
+    ddraw_surface_BltFast,
+    ddraw_surface_DeleteAttachedSurface,
+    ddraw_surface_EnumAttachedSurfaces,
+    ddraw_surface_EnumOverlayZOrders,
+    ddraw_surface_Flip,
+    ddraw_surface_GetAttachedSurface,
+    ddraw_surface_GetBltStatus,
     ddraw_surface_GetCaps,
-    null, // ddraw_surface_GetClipper
-    null, // ddraw_surface_GetColorKey
-    null, // ddraw_surface_GetDC
-    null, // ddraw_surface_GetFlipStatus
-    null, // ddraw_surface_GetOverlayPosition
+    ddraw_surface_GetClipper,
+    ddraw_surface_GetColorKey,
+    ddraw_surface_GetDC,
+    ddraw_surface_GetFlipStatus,
+    ddraw_surface_GetOverlayPosition,
     ddraw_surface_GetPalette,
-    null, // ddraw_surface_GetPixelFormat
-    null, // ddraw_surface_GetSurfaceDesc
-    null, // ddraw_surface_Initialize
-    null, // ddraw_surface_IsLost
+    ddraw_surface_GetPixelFormat,
+    ddraw_surface_GetSurfaceDesc,
+    ddraw_surface_Initialize,
+    ddraw_surface_IsLost,
     ddraw_surface_Lock,
-    null, // ddraw_surface_ReleaseDC
+    ddraw_surface_ReleaseDC,
     ddraw_surface_Restore,
-    null, // ddraw_surface_SetClipper
-    null, // ddraw_surface_SetColorKey
-    null, // ddraw_surface_SetOverlayPosition
+    ddraw_surface_SetClipper,
+    ddraw_surface_SetColorKey,
+    ddraw_surface_SetOverlayPosition,
     ddraw_surface_SetPalette,
     ddraw_surface_Unlock,
-    null, // ddraw_surface_UpdateOverlay
-    null, // ddraw_surface_UpdateOverlayDisplay
-    null  // ddraw_surface_UpdateOverlayZOrder
+    ddraw_surface_UpdateOverlay,
+    ddraw_surface_UpdateOverlayDisplay,
+    ddraw_surface_UpdateOverlayZOrder
 };
 
 HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *lpDDSurface, IUnknown FAR * unkOuter)
