@@ -23,7 +23,7 @@
 #include "surface.h"
 #include "clipper.h"
 
-HRESULT ddraw_GetCaps(void *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps)
+HRESULT __stdcall ddraw_GetCaps(IDirectDrawImpl *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps)
 {
     printf("DirectDraw::GetCaps(This=%p, lpDDDriverCaps=%p, lpDDEmulCaps=%p)\n", This, lpDDDriverCaps, lpDDEmulCaps);
 
@@ -52,16 +52,15 @@ HRESULT ddraw_GetCaps(void *This, LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDEmulCaps
     return DD_OK;
 }
 
-HRESULT ddraw_RestoreDisplayMode(void *_This)
+HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 {
-    printf("DirectDraw::RestoreDisplayMode(This=%p)\n", _This);
+    printf("DirectDraw::RestoreDisplayMode(This=%p)\n", This);
 
     return DD_OK;
 }
 
-HRESULT ddraw_SetCooperativeLevel(void *_This, HWND hWnd, DWORD dwFlags)
+HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DWORD dwFlags)
 {
-    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
     printf("DirectDraw::SetCooperativeLevel(This=%p, hWnd=0x%08X, dwFlags=0x%08X)\n", This, (unsigned int)hWnd, (unsigned int)dwFlags);
 
     /* Red Alert for some weird reason does this on Windows XP */
@@ -81,16 +80,12 @@ HRESULT ddraw_SetCooperativeLevel(void *_This, HWND hWnd, DWORD dwFlags)
     return DD_OK;
 }
 
-HRESULT ddraw_SetDisplayMode(void *_This, DWORD width, DWORD height, DWORD bpp)
+HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD height, DWORD bpp)
 {
-    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
-
     printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
 
     This->width = width;
     This->height = height;
-    This->width = 1024;
-    This->height = 768;
     This->bpp = bpp;
 
     MoveWindow(This->hWnd, 0, 0, This->width, This->height, TRUE);
@@ -98,16 +93,14 @@ HRESULT ddraw_SetDisplayMode(void *_This, DWORD width, DWORD height, DWORD bpp)
     return DD_OK;
 }
 
-HRESULT ddraw_QueryInterface(void *This, REFIID riid, void **obj)
+HRESULT __stdcall ddraw_QueryInterface(IDirectDrawImpl *This, REFIID riid, void **obj)
 {
     printf("DirectDraw::QueryInterface(This=%p, riid=%08X, obj=%p)\n", This, (unsigned int)riid, obj);
     return S_OK;
 }
 
-ULONG ddraw_AddRef(void *_This)
+ULONG __stdcall ddraw_AddRef(IDirectDrawImpl *This)
 {
-    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
-
     printf("DirectDraw::AddRef(This=%p)\n", This);
 
     This->Ref++;
@@ -115,10 +108,8 @@ ULONG ddraw_AddRef(void *_This)
     return This->Ref;
 }
 
-ULONG ddraw_Release(void *_This)
+ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 {
-    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
-
     printf("DirectDraw::Release(This=%p)\n", This);
 
     This->Ref--;
@@ -133,19 +124,20 @@ ULONG ddraw_Release(void *_This)
     return This->Ref;
 }
 
-HRESULT null(void *This)
+HRESULT __stdcall null(void *This)
 {
     printf("Warning: null method called for instance %p!\n", This);
-    return DD_OK;
+    fflush(NULL);
+    return DDERR_UNSUPPORTED;
 }
 
-fakeDirectDraw iface =
+struct IDirectDrawImplVtbl iface =
 {
     /* IUnknown */
     ddraw_QueryInterface,
     ddraw_AddRef,
     ddraw_Release,
-    /* IDirectDraw */
+    /* IDirectDrawImpl */
     null, //Compact,
     ddraw_CreateClipper,
     ddraw_CreatePalette,
@@ -182,8 +174,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
 
     printf("DirectDrawCreate(lpGUID=%p, lplpDD=%p, pUnkOuter=%p)\n", lpGUID, lplpDD, pUnkOuter);
 
-    fakeDirectDrawObject *This = (fakeDirectDrawObject *)malloc(sizeof(fakeDirectDrawObject));
-    This->Functions = &iface;
+    IDirectDrawImpl *This = (IDirectDrawImpl *)HeapAlloc(GetProcessHeap(), 0, sizeof(IDirectDrawImpl));
+    This->lpVtbl = &iface;
     This->hWnd = NULL;
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;

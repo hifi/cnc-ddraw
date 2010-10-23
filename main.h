@@ -22,39 +22,12 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-typedef struct
-{
-    /* IUnknown */
-    HRESULT (*QueryInterface)(void *, REFIID, void **);
-    ULONG (*AddRef)(void *);
-    ULONG (*Release)(void *);
+struct IDirectDrawImpl;
+struct IDirectDrawImplVtbl;
 
-    /* IDirectDraw */
-    HRESULT (*Compact)(void *);
-    HRESULT (*CreateClipper)(void *, DWORD, LPDIRECTDRAWCLIPPER FAR *, IUnknown FAR *);
-    HRESULT (*CreatePalette)(void *, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR *, IUnknown FAR *);
-    HRESULT (*CreateSurface)(void *, LPDDSURFACEDESC, LPDIRECTDRAWSURFACE FAR *, IUnknown FAR *);
-    HRESULT (*DuplicateSurface)(void *);
-    HRESULT (*EnumDisplayModes)(void *);
-    HRESULT (*EnumSurfaces)(void *);
-    HRESULT (*FlipToGDISurface)(void *);
-    HRESULT (*GetCaps)(void *, LPDDCAPS, LPDDCAPS);
-    HRESULT (*GetDisplayMode)(void *);
-    HRESULT (*GetFourCCCodes)(void *);
-    HRESULT (*GetGDISurface)(void *);
-    HRESULT (*GetMonitorFrequency)(void *);
-    HRESULT (*SetScanLine)(void *);
-    HRESULT (*GetVerticalBlankStatus)(void *);
-    HRESULT (*Initialize)(void *);
-    HRESULT (*RestoreDisplayMode)(void *);
-    HRESULT (*SetCooperativeLevel)(void *, HWND, DWORD);
-    HRESULT (*SetDisplayMode)(void *, DWORD, DWORD, DWORD);
-    HRESULT (*WaitForVerticalBlank)(void *);
-} fakeDirectDraw;
-
-typedef struct
+typedef struct IDirectDrawImpl
 {
-    fakeDirectDraw *Functions;
+    struct IDirectDrawImplVtbl *lpVtbl;
 
     ULONG Ref;
 
@@ -67,7 +40,36 @@ typedef struct
     HMODULE real_dll;
     LPDIRECTDRAW real_ddraw;
     HRESULT WINAPI (*real_DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
+} IDirectDrawImpl;
 
-} fakeDirectDrawObject;
+typedef struct IDirectDrawImplVtbl IDirectDrawImplVtbl;
+
+struct IDirectDrawImplVtbl
+{
+    HRESULT(__stdcall *QueryInterface) (IDirectDrawImpl *, const IID* const riid, LPVOID * ppvObj);
+    ULONG(__stdcall *AddRef) (IDirectDrawImpl *);
+    ULONG(__stdcall *Release) (IDirectDrawImpl *);
+
+    HRESULT(__stdcall *Compact)(IDirectDrawImpl *);
+    HRESULT(__stdcall *CreateClipper)(IDirectDrawImpl *, DWORD, LPDIRECTDRAWCLIPPER *, IUnknown *);
+    HRESULT(__stdcall *CreatePalette)(IDirectDrawImpl *, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE *, IUnknown *);
+    HRESULT(__stdcall *CreateSurface)(IDirectDrawImpl *, LPDDSURFACEDESC, LPDIRECTDRAWSURFACE *, IUnknown *);
+    HRESULT(__stdcall *DuplicateSurface)( IDirectDrawImpl *, LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE *);
+    HRESULT(__stdcall *EnumDisplayModes)( IDirectDrawImpl *, DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
+    HRESULT(__stdcall *EnumSurfaces)(IDirectDrawImpl *, DWORD, LPDDSURFACEDESC, LPVOID,LPDDENUMSURFACESCALLBACK);
+    HRESULT(__stdcall *FlipToGDISurface)(IDirectDrawImpl *);
+    HRESULT(__stdcall *GetCaps)(IDirectDrawImpl *, LPDDCAPS, LPDDCAPS);
+    HRESULT(__stdcall *GetDisplayMode)(IDirectDrawImpl *, LPDDSURFACEDESC);
+    HRESULT(__stdcall *GetFourCCCodes)(IDirectDrawImpl *, LPDWORD, LPDWORD);
+    HRESULT(__stdcall *GetGDISurface)(IDirectDrawImpl *, LPDIRECTDRAWSURFACE *);
+    HRESULT(__stdcall *GetMonitorFrequency)(IDirectDrawImpl *, LPDWORD);
+    HRESULT(__stdcall *GetScanLine)(IDirectDrawImpl *, LPDWORD);
+    HRESULT(__stdcall *GetVerticalBlankStatus)(IDirectDrawImpl *, LPBOOL);
+    HRESULT(__stdcall *Initialize)(IDirectDrawImpl *, GUID *);
+    HRESULT(__stdcall *RestoreDisplayMode)(IDirectDrawImpl *);
+    HRESULT(__stdcall *SetCooperativeLevel)(IDirectDrawImpl *, HWND, DWORD);
+    HRESULT(__stdcall *SetDisplayMode)(IDirectDrawImpl *, DWORD, DWORD,DWORD);
+    HRESULT(__stdcall *WaitForVerticalBlank)(IDirectDrawImpl *, DWORD, HANDLE);
+};
 
 #endif

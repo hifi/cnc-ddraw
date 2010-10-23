@@ -21,62 +21,24 @@
 #include "ddraw.h"
 #include "palette.h"
 
-HRESULT ddraw_CreateSurface(void *This, LPDDSURFACEDESC DDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *DDSurface, IUnknown FAR * unkOuter);
+HRESULT ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC DDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *DDSurface, IUnknown FAR * unkOuter);
 
-typedef struct
+struct IDirectDrawSurfaceImpl;
+struct IDirectDrawSurfaceImplVtbl;
+
+typedef struct IDirectDrawSurfaceImpl
 {
-    /* IUnknown */
-    HRESULT (*QueryInterface)(void *, REFIID, void **);
-    ULONG (*AddRef)(void *);
-    ULONG (*Release)(void *);
+    struct IDirectDrawSurfaceImplVtbl *lpVtbl;
 
-    /* IDirectDrawSurface */
-    HRESULT (*AddAttachedSurface)(void *, LPDIRECTDRAWSURFACE);
-    HRESULT (*AddOverlayDirtyRect)(void *, LPRECT);
-    HRESULT (*Blt)(void *, LPRECT,LPDIRECTDRAWSURFACE, LPRECT,DWORD, LPDDBLTFX);
-    HRESULT (*BltBatch)(void *, LPDDBLTBATCH, DWORD, DWORD );
-    HRESULT (*BltFast)(void *, DWORD,DWORD,LPDIRECTDRAWSURFACE, LPRECT,DWORD);
-    HRESULT (*DeleteAttachedSurface)(void *, DWORD,LPDIRECTDRAWSURFACE);
-    HRESULT (*EnumAttachedSurfaces)(void *, LPVOID,LPDDENUMSURFACESCALLBACK);
-    HRESULT (*EnumOverlayZOrders)(void *, DWORD,LPVOID,LPDDENUMSURFACESCALLBACK);
-    HRESULT (*Flip)(void *, LPDIRECTDRAWSURFACE, DWORD);
-    HRESULT (*GetAttachedSurface)(void *, LPDDSCAPS, LPDIRECTDRAWSURFACE FAR *);
-    HRESULT (*GetBltStatus)(void *, DWORD);
-    HRESULT (*GetCaps)(void *, LPDDSCAPS);
-    HRESULT (*GetClipper)(void *, LPDIRECTDRAWCLIPPER FAR*);
-    HRESULT (*GetColorKey)(void *, DWORD, LPDDCOLORKEY);
-    HRESULT (*GetDC)(void *, HDC FAR *);
-    HRESULT (*GetFlipStatus)(void *, DWORD);
-    HRESULT (*GetOverlayPosition)(void *, LPLONG, LPLONG );
-    HRESULT (*GetPalette)(void *, LPDIRECTDRAWPALETTE FAR*);
-    HRESULT (*GetPixelFormat)(void *, LPDDPIXELFORMAT);
-    HRESULT (*GetSurfaceDesc)(void *, LPDDSURFACEDESC);
-    HRESULT (*Initialize)(void *, LPDIRECTDRAW, LPDDSURFACEDESC);
-    HRESULT (*IsLost)(void *);
-    HRESULT (*Lock)(void *, LPRECT,LPDDSURFACEDESC,DWORD,HANDLE);
-    HRESULT (*ReleaseDC)(void *, HDC);
-    HRESULT (*Restore)(void *);
-    HRESULT (*SetClipper)(void *, LPDIRECTDRAWCLIPPER);
-    HRESULT (*SetColorKey)(void *, DWORD, LPDDCOLORKEY);
-    HRESULT (*SetOverlayPosition)(void *, LONG, LONG );
-    HRESULT (*SetPalette)(void *, LPDIRECTDRAWPALETTE);
-    HRESULT (*Unlock)(void *, LPVOID);
-    HRESULT (*UpdateOverlay)(void *, LPRECT, LPDIRECTDRAWSURFACE,LPRECT,DWORD, LPDDOVERLAYFX);
-    HRESULT (*UpdateOverlayDisplay)(void *, DWORD);
-    HRESULT (*UpdateOverlayZOrder)(void *, DWORD, LPDIRECTDRAWSURFACE);
-} fakeDirectDrawSurface;
-
-typedef struct
-{
-    fakeDirectDrawSurface *Functions;
+    ULONG Ref;
 
     DWORD width;
     DWORD height;
     DWORD bpp;
     DWORD caps;
 
-    fakeDirectDrawObject *parent;
-    fakeDirectDrawPaletteObject *palette;
+    IDirectDrawImpl *parent;
+    IDirectDrawPaletteImpl *palette;
 
     void *surface;
     DWORD lPitch;
@@ -93,10 +55,50 @@ typedef struct
     int *glTex;
 #endif
 
-    ULONG Ref;
+} IDirectDrawSurfaceImpl;
 
-} fakeDirectDrawSurfaceObject;
+struct IDirectDrawSurfaceImplVtbl
+{
+    /* IUnknown */
+    HRESULT (__stdcall *QueryInterface)(IDirectDrawSurfaceImpl*, REFIID, void**);
+    ULONG (__stdcall *AddRef)(IDirectDrawSurfaceImpl*);
+    ULONG (__stdcall *Release)(IDirectDrawSurfaceImpl*);
 
-extern fakeDirectDrawSurface siface;
+    /* IDirectDrawSurface */
+    HRESULT (__stdcall *AddAttachedSurface)(IDirectDrawSurfaceImpl*, LPDIRECTDRAWSURFACE);
+    HRESULT (__stdcall *AddOverlayDirtyRect)(IDirectDrawSurfaceImpl*, LPRECT);
+    HRESULT (__stdcall *Blt)(IDirectDrawSurfaceImpl*, LPRECT,LPDIRECTDRAWSURFACE, LPRECT,DWORD, LPDDBLTFX);
+    HRESULT (__stdcall *BltBatch)(IDirectDrawSurfaceImpl*, LPDDBLTBATCH, DWORD, DWORD );
+    HRESULT (__stdcall *BltFast)(IDirectDrawSurfaceImpl*, DWORD,DWORD,LPDIRECTDRAWSURFACE, LPRECT,DWORD);
+    HRESULT (__stdcall *DeleteAttachedSurface)(IDirectDrawSurfaceImpl*, DWORD,LPDIRECTDRAWSURFACE);
+    HRESULT (__stdcall *EnumAttachedSurfaces)(IDirectDrawSurfaceImpl*, LPVOID,LPDDENUMSURFACESCALLBACK);
+    HRESULT (__stdcall *EnumOverlayZOrders)(IDirectDrawSurfaceImpl*, DWORD,LPVOID,LPDDENUMSURFACESCALLBACK);
+    HRESULT (__stdcall *Flip)(IDirectDrawSurfaceImpl*, LPDIRECTDRAWSURFACE, DWORD);
+    HRESULT (__stdcall *GetAttachedSurface)(IDirectDrawSurfaceImpl*, LPDDSCAPS, LPDIRECTDRAWSURFACE FAR *);
+    HRESULT (__stdcall *GetBltStatus)(IDirectDrawSurfaceImpl*, DWORD);
+    HRESULT (__stdcall *GetCaps)(IDirectDrawSurfaceImpl*, LPDDSCAPS);
+    HRESULT (__stdcall *GetClipper)(IDirectDrawSurfaceImpl*, LPDIRECTDRAWCLIPPER FAR*);
+    HRESULT (__stdcall *GetColorKey)(IDirectDrawSurfaceImpl*, DWORD, LPDDCOLORKEY);
+    HRESULT (__stdcall *GetDC)(IDirectDrawSurfaceImpl*, HDC FAR *);
+    HRESULT (__stdcall *GetFlipStatus)(IDirectDrawSurfaceImpl*, DWORD);
+    HRESULT (__stdcall *GetOverlayPosition)(IDirectDrawSurfaceImpl*, LPLONG, LPLONG );
+    HRESULT (__stdcall *GetPalette)(IDirectDrawSurfaceImpl*, LPDIRECTDRAWPALETTE FAR*);
+    HRESULT (__stdcall *GetPixelFormat)(IDirectDrawSurfaceImpl*, LPDDPIXELFORMAT);
+    HRESULT (__stdcall *GetSurfaceDesc)(IDirectDrawSurfaceImpl*, LPDDSURFACEDESC);
+    HRESULT (__stdcall *Initialize)(IDirectDrawSurfaceImpl*, LPDIRECTDRAW, LPDDSURFACEDESC);
+    HRESULT (__stdcall *IsLost)(IDirectDrawSurfaceImpl*);
+    HRESULT (__stdcall *Lock)(IDirectDrawSurfaceImpl*, LPRECT,LPDDSURFACEDESC,DWORD,HANDLE);
+    HRESULT (__stdcall *ReleaseDC)(IDirectDrawSurfaceImpl*, HDC);
+    HRESULT (__stdcall *Restore)(IDirectDrawSurfaceImpl*);
+    HRESULT (__stdcall *SetClipper)(IDirectDrawSurfaceImpl*, LPDIRECTDRAWCLIPPER);
+    HRESULT (__stdcall *SetColorKey)(IDirectDrawSurfaceImpl*, DWORD, LPDDCOLORKEY);
+    HRESULT (__stdcall *SetOverlayPosition)(IDirectDrawSurfaceImpl*, LONG, LONG );
+    HRESULT (__stdcall *SetPalette)(IDirectDrawSurfaceImpl*, LPDIRECTDRAWPALETTE);
+    HRESULT (__stdcall *Unlock)(IDirectDrawSurfaceImpl*, LPVOID);
+    HRESULT (__stdcall *UpdateOverlay)(IDirectDrawSurfaceImpl*, LPRECT, LPDIRECTDRAWSURFACE,LPRECT,DWORD, LPDDOVERLAYFX);
+    HRESULT (__stdcall *UpdateOverlayDisplay)(IDirectDrawSurfaceImpl*, DWORD);
+    HRESULT (__stdcall *UpdateOverlayZOrder)(IDirectDrawSurfaceImpl*, DWORD, LPDIRECTDRAWSURFACE);
+} IDirectDrawSurfaceImplVtbl;
+
 
 #endif

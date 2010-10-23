@@ -19,33 +19,36 @@
 
 #include <windows.h>
 #include "ddraw.h"
+#include "main.h"
 
-typedef struct
+struct IDirectDrawPaletteImpl;
+struct IDirectDrawPaletteImplVtbl;
+
+typedef struct IDirectDrawPaletteImpl
 {
-    /* IUnknown */
-    HRESULT (*QueryInterface)(void *, REFIID, void **);
-    ULONG (*AddRef)(void *);
-    ULONG (*Release)(void *);
-
-    /* IDirectDrawPalette */
-    HRESULT (*GetCaps)(void *, LPDWORD);
-    HRESULT (*GetEntries)(void *, DWORD, DWORD, DWORD, LPPALETTEENTRY);
-    HRESULT (*Initialize)(void *, LPDIRECTDRAW, DWORD, LPPALETTEENTRY);
-    HRESULT (*SetEntries)(void *, DWORD, DWORD, DWORD, LPPALETTEENTRY);
-} fakeDirectDrawPalette;
-
-typedef struct
-{
-    fakeDirectDrawPalette *Functions;
-
-    int data[256];
+    struct IDirectDrawPaletteImplVtbl *lpVtbl;
 
     ULONG Ref;
 
-} fakeDirectDrawPaletteObject;
+    int data[256];
 
-extern fakeDirectDrawPalette piface;
+} IDirectDrawPaletteImpl;
 
-HRESULT ddraw_CreatePalette(void *This, DWORD dwFlags, LPPALETTEENTRY DDColorArray, LPDIRECTDRAWPALETTE FAR * DDPalette, IUnknown FAR * unkOuter);
+struct IDirectDrawPaletteImplVtbl
+{
+    /* IUnknown */
+    HRESULT (__stdcall *QueryInterface)(IDirectDrawPaletteImpl*, REFIID, void**);
+    ULONG (__stdcall *AddRef)(IDirectDrawPaletteImpl*);
+    ULONG (__stdcall *Release)(IDirectDrawPaletteImpl*);
+
+    /* IDirectDrawPalette */
+    HRESULT (__stdcall *GetCaps)(IDirectDrawPaletteImpl*, LPDWORD);
+    HRESULT (__stdcall *GetEntries)(IDirectDrawPaletteImpl*, DWORD, DWORD, DWORD, LPPALETTEENTRY);
+    HRESULT (__stdcall *Initialize)(IDirectDrawPaletteImpl*, LPDIRECTDRAW, DWORD, LPPALETTEENTRY);
+    HRESULT (__stdcall *SetEntries)(IDirectDrawPaletteImpl*, DWORD, DWORD, DWORD, LPPALETTEENTRY);
+
+} IDirectDrawPaletteImplVtbl;
+
+HRESULT __stdcall ddraw_CreatePalette(IDirectDrawImpl *This, DWORD dwFlags, LPPALETTEENTRY DDColorArray, LPDIRECTDRAWPALETTE FAR * DDPalette, IUnknown FAR * unkOuter);
 
 #endif

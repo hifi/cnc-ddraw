@@ -24,30 +24,26 @@
 HRESULT null();
 
 DWORD WINAPI ogl_Thread(void *_This);
-DWORD WINAPI dd_Thread(void *_This);
+DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This);
 void dump_ddsd(DWORD);
 void dump_ddscaps(DWORD);
 
-HRESULT ddraw_surface_QueryInterface(void *This, REFIID riid, void **obj)
+HRESULT __stdcall ddraw_surface_QueryInterface(IDirectDrawSurfaceImpl *This, REFIID riid, void **obj)
 {
     printf("DirectDrawSurface::QueryInterface(This=%p, riid=%08X, obj=%p)\n", This, (unsigned int)riid, obj);
     return S_OK;
 }
 
-ULONG ddraw_surface_AddRef(void *_This)
+ULONG __stdcall ddraw_surface_AddRef(IDirectDrawSurfaceImpl *This)
 {
-    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
-
     printf("DirectDrawSurface::AddRef(This=%p)\n", This);
     This->Ref++;
     return This->Ref;
 }
 
-ULONG ddraw_surface_Release(void *_This)
+ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
 {
-    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
-
-    printf("DirectDrawSurface::Release(This=%p)\n", ((fakeDirectDrawSurfaceObject *)This));
+    printf("DirectDrawSurface::Release(This=%p)\n", This);
 
     This->Ref--;
 
@@ -71,7 +67,7 @@ ULONG ddraw_surface_Release(void *_This)
 #endif
         if(This->palette)
         {
-            This->palette->Functions->Release(This->palette);
+            IDirectDrawPalette_Release(This->palette);
         }
         free(This);
         return 0;
@@ -79,85 +75,15 @@ ULONG ddraw_surface_Release(void *_This)
     return This->Ref;
 }
 
-HRESULT ddraw_CreateSurface(void *_This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *lpDDSurface, IUnknown FAR * unkOuter)
+HRESULT __stdcall ddraw_surface_AddAttachedSurface(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWSURFACE lpDDSurface)
 {
-    fakeDirectDrawObject *This = (fakeDirectDrawObject *)_This;
-
-    printf("DirectDraw::CreateSurface(This=%p, lpDDSurfaceDesc=%p, lpDDSurface=%p, unkOuter=%p)\n", This, lpDDSurfaceDesc, lpDDSurface, unkOuter);
-
-    dump_ddsd(lpDDSurfaceDesc->dwFlags);
-
-    fakeDirectDrawSurfaceObject *Surface = (fakeDirectDrawSurfaceObject *)malloc(sizeof(fakeDirectDrawSurfaceObject));
-
-    Surface->Functions = &siface;
-
-    /* private stuff */
-    Surface->parent = This;
-    Surface->bpp = This->bpp;
-    Surface->surface = NULL;
-    Surface->caps = 0;
-    Surface->palette = NULL;
-    Surface->dThread = NULL;
-    Surface->dRun = TRUE;
-#if USE_OPENGL
-    Surface->hDC = NULL;
-    Surface->glTex = NULL;
-#endif
-
-    if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
-    {
-        if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
-        {
-            Surface->width = This->width;
-            Surface->height = This->height;
-            Surface->hWnd = This->hWnd;
-#if USE_OPENGL
-            Surface->dThread = CreateThread(NULL, 0, ogl_Thread, (void *)Surface, 0, NULL);
-#else
-            Surface->dThread = CreateThread(NULL, 0, dd_Thread, (void *)Surface, 0, NULL);
-#endif
-        }
-
-        dump_ddscaps(lpDDSurfaceDesc->ddsCaps.dwCaps);
-        Surface->caps = lpDDSurfaceDesc->ddsCaps.dwCaps;
-    }
-
-    if( !(lpDDSurfaceDesc->dwFlags & DDSD_CAPS) || !(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) )
-    {
-        Surface->width = lpDDSurfaceDesc->dwWidth;
-        Surface->height = lpDDSurfaceDesc->dwHeight;
-    }
-
-    if(Surface->width && Surface->height)
-    {
-        Surface->lPitch = Surface->width;
-        Surface->lXPitch = Surface->bpp / 8;
-        Surface->surface = malloc(Surface->width * Surface->height * Surface->lXPitch);
-#if USE_OPENGL
-        Surface->glTex = malloc(Surface->width * Surface->height * sizeof(int));
-#endif
-    }
-
-    printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);
-
-    *lpDDSurface = (LPDIRECTDRAWSURFACE)Surface;
-
-    Surface->Ref = 0;
-    ddraw_surface_AddRef(Surface);
-
+    printf("DirectDrawSurface::AddAttachedSurface(This=%p, lpDDSurface=%p)\n", This, lpDDSurface);
     return DD_OK;
 }
 
-HRESULT ddraw_surface_AddAttachedSurface(void *_This, LPDIRECTDRAWSURFACE lpDDSurface)
+HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
 {
-    printf("DirectDrawSurface::AddAttachedSurface(This=%p, lpDDSurface=%p)\n", _This, lpDDSurface);
-    return DD_OK;
-}
-
-HRESULT ddraw_surface_Blt(void *_This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
-{
-    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
-    fakeDirectDrawSurfaceObject *Source = (fakeDirectDrawSurfaceObject *)lpDDSrcSurface;
+    IDirectDrawSurfaceImpl *Source = (IDirectDrawSurfaceImpl *)lpDDSrcSurface;
 
 #if _DEBUG
     printf("DirectDrawSurface::Blt(This=%p, lpDestRect=%p, lpDDSrcSurface=%p, lpSrcRect=%p, dwFlags=%d, lpDDBltFx=%p)\n", This, lpDestRect, lpDDSrcSurface, lpSrcRect, (int)dwFlags, lpDDBltFx);
@@ -203,32 +129,28 @@ HRESULT ddraw_surface_Blt(void *_This, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lp
     return DD_OK;
 }
 
-HRESULT ddraw_surface_GetCaps(void *_This, LPDDSCAPS lpDDSCaps)
+HRESULT __stdcall ddraw_surface_GetCaps(IDirectDrawSurfaceImpl *This, LPDDSCAPS lpDDSCaps)
 {
-    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
-    printf("DirectDrawSurface::GetCaps(This=%p, lpDDSCaps=%p)\n", _This, lpDDSCaps);
+    printf("DirectDrawSurface::GetCaps(This=%p, lpDDSCaps=%p)\n", This, lpDDSCaps);
     lpDDSCaps->dwCaps = This->caps;
     return DD_OK;
 }
 
-HRESULT ddraw_surface_GetPalette(void *_This, LPDIRECTDRAWPALETTE FAR *lplpDDPalette)
+HRESULT __stdcall ddraw_surface_GetPalette(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWPALETTE FAR *lplpDDPalette)
 {
-    printf("DirectDrawSurface::GetPalette(This=%p, lplpDDPalette=%p)\n", _This, lplpDDPalette);
+    printf("DirectDrawSurface::GetPalette(This=%p, lplpDDPalette=%p)\n", This, lplpDDPalette);
     return DD_OK;
 }
 
-HRESULT ddraw_surface_SetPalette(void *_This, LPDIRECTDRAWPALETTE lpDDPalette)
+HRESULT __stdcall ddraw_surface_SetPalette(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWPALETTE lpDDPalette)
 {
-    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
-    printf("DirectDrawSurface::SetPalette(This=%p, lpDDPalette=%p)\n", _This, lpDDPalette);
-    This->palette = (fakeDirectDrawPaletteObject *)lpDDPalette;
+    printf("DirectDrawSurface::SetPalette(This=%p, lpDDPalette=%p)\n", This, lpDDPalette);
+    This->palette = (IDirectDrawPaletteImpl *)lpDDPalette;
     return DD_OK;
 }
 
-HRESULT ddraw_surface_Lock(void *_This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
+HRESULT __stdcall ddraw_surface_Lock(IDirectDrawSurfaceImpl *This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
 {
-    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
-
 #if _DEBUG
     printf("DirectDrawSurface::Lock(This=%p, lpDestRect=%p, lpDDSurfaceDesc=%p, dwFlags=%d, hEvent=%p)\n", This, lpDestRect, lpDDSurfaceDesc, (int)dwFlags, hEvent);
 
@@ -262,10 +184,8 @@ HRESULT ddraw_surface_Lock(void *_This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDS
     return DD_OK;
 }
 
-HRESULT ddraw_surface_Unlock(void *_This, LPVOID lpRect)
+HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPVOID lpRect)
 {
-    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
-
 #if _DEBUG
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
@@ -278,7 +198,13 @@ HRESULT ddraw_surface_Unlock(void *_This, LPVOID lpRect)
     return DD_OK;
 }
 
-fakeDirectDrawSurface siface =
+HRESULT __stdcall ddraw_surface_Restore(IDirectDrawSurfaceImpl *This)
+{
+    printf("DirectDrawSurface::Restore(This=%p)\n", This);
+    return DD_OK;
+}
+
+struct IDirectDrawSurfaceImplVtbl siface =
 {
     /* IUnknown */
     ddraw_surface_QueryInterface,
@@ -309,7 +235,7 @@ fakeDirectDrawSurface siface =
     null, // ddraw_surface_IsLost
     ddraw_surface_Lock,
     null, // ddraw_surface_ReleaseDC
-    null, // ddraw_surface_Restore
+    ddraw_surface_Restore,
     null, // ddraw_surface_SetClipper
     null, // ddraw_surface_SetColorKey
     null, // ddraw_surface_SetOverlayPosition
@@ -320,12 +246,78 @@ fakeDirectDrawSurface siface =
     null  // ddraw_surface_UpdateOverlayZOrder
 };
 
+HRESULT ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE FAR *lpDDSurface, IUnknown FAR * unkOuter)
+{
+    printf("DirectDraw::CreateSurface(This=%p, lpDDSurfaceDesc=%p, lpDDSurface=%p, unkOuter=%p)\n", This, lpDDSurfaceDesc, lpDDSurface, unkOuter);
+
+    dump_ddsd(lpDDSurfaceDesc->dwFlags);
+
+    IDirectDrawSurfaceImpl *Surface = (IDirectDrawSurfaceImpl *)HeapAlloc(GetProcessHeap(), 0, sizeof(IDirectDrawSurfaceImpl));
+
+    Surface->lpVtbl = &siface;
+
+    /* private stuff */
+    Surface->parent = This;
+    Surface->bpp = This->bpp;
+    Surface->surface = NULL;
+    Surface->caps = 0;
+    Surface->palette = NULL;
+    Surface->dThread = NULL;
+    Surface->dRun = TRUE;
 #if USE_OPENGL
-DWORD WINAPI ogl_Thread(void *_This)
+    Surface->hDC = NULL;
+    Surface->glTex = NULL;
+#endif
+
+    if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
+    {
+        if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+        {
+            Surface->width = This->width;
+            Surface->height = This->height;
+            Surface->hWnd = This->hWnd;
+#if USE_OPENGL
+            Surface->dThread = CreateThread(NULL, 0, ogl_Thread, (void *)Surface, 0, NULL);
+#else
+            Surface->dThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dd_Thread, (void *)Surface, 0, NULL);
+#endif
+        }
+
+        dump_ddscaps(lpDDSurfaceDesc->ddsCaps.dwCaps);
+        Surface->caps = lpDDSurfaceDesc->ddsCaps.dwCaps;
+    }
+
+    if( !(lpDDSurfaceDesc->dwFlags & DDSD_CAPS) || !(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) )
+    {
+        Surface->width = lpDDSurfaceDesc->dwWidth;
+        Surface->height = lpDDSurfaceDesc->dwHeight;
+    }
+
+    if(Surface->width && Surface->height)
+    {
+        Surface->lPitch = Surface->width;
+        Surface->lXPitch = Surface->bpp / 8;
+        Surface->surface = malloc(Surface->width * Surface->height * Surface->lXPitch);
+#if USE_OPENGL
+        Surface->glTex = malloc(Surface->width * Surface->height * sizeof(int));
+#endif
+    }
+
+    printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);
+
+    *lpDDSurface = (LPDIRECTDRAWSURFACE)Surface;
+
+    Surface->Ref = 0;
+    ddraw_surface_AddRef(Surface);
+
+    return DD_OK;
+}
+
+#if USE_OPENGL
+DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This)
 {
     int i,j;
     PIXELFORMATDESCRIPTOR pfd;
-    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
 
     This->hDC = GetDC(This->hWnd);
 
@@ -384,10 +376,9 @@ DWORD WINAPI ogl_Thread(void *_This)
 
 #else // if USE_OPENGL
 
-DWORD WINAPI dd_Thread(void *_This)
+DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
 {
     int i,j;
-    fakeDirectDrawSurfaceObject *This = (fakeDirectDrawSurfaceObject *)_This;
     DDSURFACEDESC ddsd;
     LPDIRECTDRAWSURFACE primary;
     LPDIRECTDRAWCLIPPER clipper;
