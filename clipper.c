@@ -18,19 +18,14 @@
 #include <stdio.h>
 #include "clipper.h"
 
-/* from main */
-HRESULT null();
-
-HRESULT ddraw_clipper_QueryInterface(void *This, REFIID riid, void **obj)
+HRESULT __stdcall ddraw_clipper_QueryInterface(IDirectDrawClipperImpl *This, REFIID riid, void **obj)
 {
     printf("DirectDrawClipper::QueryInterface(This=%p, riid=%08X, obj=%p)\n", This, (unsigned int)riid, obj);
     return S_OK;
 }
 
-ULONG ddraw_clipper_AddRef(void *_This)
+ULONG __stdcall ddraw_clipper_AddRef(IDirectDrawClipperImpl *This)
 {
-    fakeDirectDrawClipperObject *This = (fakeDirectDrawClipperObject *)_This;
-
     printf("DirectDrawClipper::AddRef(This=%p)\n", This);
 
     This->Ref++;
@@ -38,10 +33,8 @@ ULONG ddraw_clipper_AddRef(void *_This)
     return This->Ref;
 }
 
-ULONG ddraw_clipper_Release(void *_This)
+ULONG __stdcall ddraw_clipper_Release(IDirectDrawClipperImpl *This)
 {
-    fakeDirectDrawClipperObject *This = (fakeDirectDrawClipperObject *)_This;
-
     printf("DirectDrawClipper::Release(This=%p)\n", This);
 
     This->Ref--;
@@ -55,27 +48,63 @@ ULONG ddraw_clipper_Release(void *_This)
     return This->Ref;
 }
 
-fakeDirectDrawClipper ciface =
+HRESULT __stdcall ddraw_clipper_GetClipList(IDirectDrawClipperImpl *This, LPRECT a, LPRGNDATA b, LPDWORD c)
+{
+    printf("IDirectDrawClipper::GetClipList(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_clipper_GetHWnd(IDirectDrawClipperImpl *This, HWND FAR *a)
+{
+    printf("IDirectDrawClipper::GetHWnd(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_clipper_Initialize(IDirectDrawClipperImpl *This, LPDIRECTDRAW a, DWORD b)
+{
+    printf("IDirectDrawClipper::Initialize(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_clipper_IsClipListChanged(IDirectDrawClipperImpl *This, BOOL FAR *a)
+{
+    printf("IDirectDrawClipper::IsClipListChanged(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_clipper_SetClipList(IDirectDrawClipperImpl *This, LPRGNDATA a, DWORD b)
+{
+    printf("IDirectDrawClipper::SetClipList(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_clipper_SetHWnd(IDirectDrawClipperImpl *This, DWORD a, HWND b)
+{
+    printf("IDirectDrawClipper::SetHWnd(This=%p, ...)\n", This);
+    return DD_OK;
+}
+
+struct IDirectDrawClipperImplVtbl ciface =
 {
     /* IUnknown */
     ddraw_clipper_QueryInterface,
     ddraw_clipper_AddRef,
     ddraw_clipper_Release,
     /* IDirectDrawClipper */
-    null, // ddraw_clipper_GetClipList
-    null, // ddraw_clipper_GetHWnd
-    null, // ddraw_clipper_Initialize
-    null, // ddraw_clipper_IsClipListChanged
-    null, // ddraw_clipper_SetClipList
-    null  // ddraw_clipper_SetHwnd
+    ddraw_clipper_GetClipList,
+    ddraw_clipper_GetHWnd,
+    ddraw_clipper_Initialize,
+    ddraw_clipper_IsClipListChanged,
+    ddraw_clipper_SetClipList,
+    ddraw_clipper_SetHWnd
 };
 
 HRESULT __stdcall ddraw_CreateClipper(IDirectDrawImpl *This, DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR *lplpDDClipper, IUnknown FAR *pUnkOuter )
 {
     printf("DirectDraw::CreateClipper(This=%p, dwFlags=%d, DDClipper=%p, unkOuter=%p)\n", This, (int)dwFlags, lplpDDClipper, pUnkOuter);
 
-    fakeDirectDrawClipperObject *Clipper = (fakeDirectDrawClipperObject *)malloc(sizeof(fakeDirectDrawClipperObject));
-    Clipper->Functions = &ciface;
+    IDirectDrawClipperImpl *Clipper = (IDirectDrawClipperImpl *)HeapAlloc(GetProcessHeap(), 0, sizeof(IDirectDrawClipperImpl));
+    Clipper->lpVtbl = &ciface;
     printf(" Clipper = %p\n", Clipper);
     *lplpDDClipper = (LPDIRECTDRAWCLIPPER)Clipper;
 

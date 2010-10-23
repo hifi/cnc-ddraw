@@ -21,32 +21,33 @@
 #include "ddraw.h"
 #include "main.h"
 
-typedef struct
-{
-    /* IUnknown */
-    HRESULT (*QueryInterface)(void *, REFIID, void **);
-    ULONG (*AddRef)(void *);
-    ULONG (*Release)(void *);
+HRESULT __stdcall ddraw_CreateClipper(IDirectDrawImpl *This, DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR *lplpDDClipper, IUnknown FAR *pUnkOuter );
 
-    /* IDirectDrawClipper */
-    HRESULT (*GetClipList)(void *, LPRECT, LPRGNDATA, LPDWORD);
-    HRESULT (*GetHWnd)(void *, HWND FAR *);
-    HRESULT (*Initialize)(void *, LPDIRECTDRAW, DWORD);
-    HRESULT (*IsClipListChanged)(void *, BOOL FAR *);
-    HRESULT (*SetClipList)(void *, LPRGNDATA,DWORD);
-    HRESULT (*SetHWnd)(void *, DWORD, HWND );
-} fakeDirectDrawClipper;
+struct IDirectDrawClipperImpl;
+struct IDirectDrawClipperImplVtbl;
 
-typedef struct
+typedef struct IDirectDrawClipperImpl
 {
-    fakeDirectDrawClipper *Functions;
+    struct IDirectDrawClipperImplVtbl *lpVtbl;
 
     ULONG Ref;
 
-} fakeDirectDrawClipperObject;
+} IDirectDrawClipperImpl;
 
-extern fakeDirectDrawClipper ciface;
+struct IDirectDrawClipperImplVtbl
+{
+    /* IUnknown */
+    HRESULT __stdcall (*QueryInterface)(IDirectDrawClipperImpl *, REFIID, void **);
+    ULONG __stdcall (*AddRef)(IDirectDrawClipperImpl *);
+    ULONG __stdcall (*Release)(IDirectDrawClipperImpl *);
 
-HRESULT __stdcall ddraw_CreateClipper(IDirectDrawImpl *This, DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR *lplpDDClipper, IUnknown FAR *pUnkOuter );
+    /* IDirectDrawClipper */
+    HRESULT __stdcall (*GetClipList)(IDirectDrawClipperImpl *, LPRECT, LPRGNDATA, LPDWORD);
+    HRESULT __stdcall (*GetHWnd)(IDirectDrawClipperImpl *, HWND FAR *);
+    HRESULT __stdcall (*Initialize)(IDirectDrawClipperImpl *, LPDIRECTDRAW, DWORD);
+    HRESULT __stdcall (*IsClipListChanged)(IDirectDrawClipperImpl *, BOOL FAR *);
+    HRESULT __stdcall (*SetClipList)(IDirectDrawClipperImpl *, LPRGNDATA,DWORD);
+    HRESULT __stdcall (*SetHWnd)(IDirectDrawClipperImpl *, DWORD, HWND );
+} IDirectDrawClipperImplVtbl;
 
 #endif

@@ -209,13 +209,6 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
     return This->Ref;
 }
 
-HRESULT __stdcall null(void *This)
-{
-    printf("Warning: null method called for instance %p!\n", This);
-    fflush(NULL);
-    return DDERR_UNSUPPORTED;
-}
-
 struct IDirectDrawImplVtbl iface =
 {
     /* IUnknown */
