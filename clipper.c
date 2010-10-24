@@ -103,12 +103,11 @@ HRESULT __stdcall ddraw_CreateClipper(IDirectDrawImpl *This, DWORD dwFlags, LPDI
 {
     printf("DirectDraw::CreateClipper(This=%p, dwFlags=%d, DDClipper=%p, unkOuter=%p)\n", This, (int)dwFlags, lplpDDClipper, pUnkOuter);
 
-    IDirectDrawClipperImpl *Clipper = (IDirectDrawClipperImpl *)HeapAlloc(GetProcessHeap(), 0, sizeof(IDirectDrawClipperImpl));
+    IDirectDrawClipperImpl *Clipper = (IDirectDrawClipperImpl *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectDrawClipperImpl));
     Clipper->lpVtbl = &ciface;
     printf(" Clipper = %p\n", Clipper);
     *lplpDDClipper = (LPDIRECTDRAWCLIPPER)Clipper;
 
-    Clipper->Ref = 0;
     ddraw_clipper_AddRef(Clipper);
 
     return DD_OK;

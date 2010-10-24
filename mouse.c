@@ -37,12 +37,12 @@ struct game games[] =
         0x004C894A, /* address should contain 2E FF 15 */
         0x005B0184, /* GetCursorPos thunk addr */
         {
-            0x004C88CB, /* ClipCursor */
-            0x004C88DF, /* ClipCursor */
-            0x0041114E, /* ShowCursor */
-            0x00411197, /* ShowCursor */
-            0x0045448F, /* ShowCursor */
-            0x004CCE61, /* SetCursor */
+            0x004C88CC, /* ClipCursor */
+            0x004C88E0, /* ClipCursor */
+            0x0041114F, /* ShowCursor */
+            0x00411198, /* ShowCursor */
+            0x00454490, /* ShowCursor */
+            0x004CCE62, /* SetCursor */
             0x00000000
         },
     },
@@ -51,14 +51,14 @@ struct game games[] =
         0x005B39C0,
         0x005E6848,
         {
-            0x005C194C, /* ClipCursor */
-            0x005C196C, /* ClipCursor */
-            0x004F839F, /* ShowCursor */
-            0x005B3A25, /* ShowCursor */
-            0x005B3A72, /* ShowCursor */
-            0x005A02CC, /* SetCursor */
-            0x005A0309, /* SetCursor */
-            0x005A0323, /* SetCursor */
+            0x005C194D, /* ClipCursor */
+            0x005C196D, /* ClipCursor */
+            0x004F83A0, /* ShowCursor */
+            0x005B3A26, /* ShowCursor */
+            0x005B3A73, /* ShowCursor */
+            0x005A02CD, /* SetCursor */
+            0x005A030A, /* SetCursor */
+            0x005A0324, /* SetCursor */
             0x00000000
         },
     },
@@ -78,9 +78,11 @@ BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
     return TRUE;
 }
 
+BOOL mouse_active = FALSE;
+
 void mouse_lock()
 {
-    if(!ddraw->locked)
+    if(mouse_active && !ddraw->locked)
     {
         ddraw->locked = TRUE;
         ClipCursor(&ddraw->cursorclip);
@@ -91,6 +93,11 @@ void mouse_lock()
 
 void mouse_unlock()
 {
+    if(!mouse_active)
+    {
+        return;
+    }
+
     if(ddraw->locked)
     {
         ShowCursor(TRUE);
@@ -114,7 +121,7 @@ void mouse_init(HWND hWnd)
     DWORD dwWritten;
     int i;
 
-    unsigned char buf[8];
+    unsigned char buf[7];
 
     GetWindowThreadProcessId(hWnd, &tmp);
     hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, tmp);
@@ -130,15 +137,19 @@ void mouse_init(HWND hWnd)
         {
             WriteProcessMemory(hProcess, (void *)ptr->hook, &tmp, 4, &dwWritten);
 
-            memset(buf, 0x90, 8);
+            memset(buf, 0x90, 7);   // NOP
+            buf[0] = 0x58;          // POP EAX
+            buf[1] = 0x33;          // XOR EAX,EAX
+            buf[2] = 0xC0;          // ^
             for(i=0;i<MAX_NOPS;i++)
             {
                 if(!ptr->nops[i])
                     break;
 
-                WriteProcessMemory(hProcess, (void *)ptr->nops[i], buf, 8, &dwWritten);
+                WriteProcessMemory(hProcess, (void *)ptr->nops[i], buf, 7, &dwWritten);
             }
 
+            mouse_active = TRUE;
             return;
         }
         ptr++;

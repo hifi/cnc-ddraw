@@ -53,22 +53,18 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
             This->dRun = FALSE;
             SetEvent(This->flipEvent);
             WaitForSingleObject(This->dThread, INFINITE);
+            This->dThread = NULL;
         }
         if(This->surface)
         {
-            free(This->surface);
+            //free(This->surface);
         }
-#if USE_OPENGL
-        if(This->glTex)
-        {
-            free(This->glTex);
-        }
-#endif
         if(This->palette)
         {
             IDirectDrawPalette_Release(This->palette);
         }
-        free(This);
+        /* FIXME: crashing on 64bit windows, investigate! */
+        //free(This);
         return 0;
     }
     return This->Ref;
@@ -403,22 +399,14 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
     dump_ddsd(lpDDSurfaceDesc->dwFlags);
 
-    IDirectDrawSurfaceImpl *Surface = (IDirectDrawSurfaceImpl *)HeapAlloc(GetProcessHeap(), 0, sizeof(IDirectDrawSurfaceImpl));
+    IDirectDrawSurfaceImpl *Surface = (IDirectDrawSurfaceImpl *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectDrawSurfaceImpl));
 
     Surface->lpVtbl = &siface;
 
     /* private stuff */
     Surface->parent = This;
     Surface->bpp = This->bpp;
-    Surface->surface = NULL;
-    Surface->caps = 0;
-    Surface->palette = NULL;
-    Surface->dThread = NULL;
     Surface->dRun = TRUE;
-#if USE_OPENGL
-    Surface->hDC = NULL;
-    Surface->glTex = NULL;
-#endif
 
     if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
     {
@@ -451,9 +439,6 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
         Surface->lPitch = Surface->width;
         Surface->lXPitch = Surface->bpp / 8;
         Surface->surface = malloc(Surface->width * Surface->height * Surface->lXPitch);
-#if USE_OPENGL
-        Surface->glTex = malloc(Surface->width * Surface->height * sizeof(int));
-#endif
     }
 
     printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);
@@ -473,6 +458,8 @@ DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This)
     PIXELFORMATDESCRIPTOR pfd;
 
     This->hDC = GetDC(This->hWnd);
+
+    int *glTex = malloc(This->width * This->height * sizeof(int));
 
     memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
     pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
@@ -499,11 +486,11 @@ DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This)
         {
             for(j=0; j<This->width; j++)
             {
-                This->glTex[i*This->width+j] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
+                glTex[i*This->width+j] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
             }
         }
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, This->width, This->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, This->glTex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, This->width, This->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, glTex);
 
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
@@ -519,6 +506,8 @@ DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This)
 
         SwapBuffers(This->hDC);
     }
+
+    free(glTex);
 
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(This->hRC);

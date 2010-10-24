@@ -103,14 +103,13 @@ HRESULT __stdcall ddraw_CreatePalette(IDirectDrawImpl *This, DWORD dwFlags, LPPA
 {
     printf("DirectDraw::CreatePalette(This=%p, dwFlags=%d, DDColorArray=%p, DDPalette=%p, unkOuter=%p)\n", This, (int)dwFlags, lpDDColorArray, lpDDPalette, unkOuter);
 
-    IDirectDrawPaletteImpl *Palette = (IDirectDrawPaletteImpl *)HeapAlloc(GetProcessHeap(), 0, sizeof(IDirectDrawPaletteImpl));
+    IDirectDrawPaletteImpl *Palette = (IDirectDrawPaletteImpl *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectDrawPaletteImpl));
     Palette->lpVtbl = &piface;
     printf(" Palette = %p\n", Palette);
     *lpDDPalette = (LPDIRECTDRAWPALETTE)Palette;
 
     ddraw_palette_SetEntries(Palette, dwFlags, 0, 256, lpDDColorArray);
 
-    Palette->Ref = 0;
     ddraw_palette_AddRef(Palette);
 
     return DD_OK;
