@@ -267,19 +267,19 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     This->height = height;
     This->bpp = bpp;
 
-    SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_POPUPWINDOW | WS_CAPTION);
-    MoveWindow(This->hWnd, 0, 0, This->width, This->height, TRUE);
-
-    RECT rcClient, rcWindow;
-    POINT ptDiff;
-    GetClientRect(This->hWnd, &rcClient);
-    GetWindowRect(This->hWnd, &rcWindow);
-    ptDiff.x = (rcWindow.right - rcWindow.left) - rcClient.right;
-    ptDiff.y = (rcWindow.bottom - rcWindow.top) - rcClient.bottom;
-
-    MoveWindow(This->hWnd, rcWindow.left, rcWindow.top, This->width + ptDiff.x, This->height + ptDiff.y, TRUE);
-
     mouse_unlock();
+
+    SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER | WS_SYSMENU /*| WS_MINIMIZEBOX*/);
+
+    /* center the window with correct dimensions */
+    int x = (GetSystemMetrics(SM_CXSCREEN) / 2) - (This->width / 2);
+    int y = (GetSystemMetrics(SM_CYSCREEN) / 2) - (This->height / 2);
+    RECT dst = { x, y, This->width+x, This->height+y };
+    AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
+    MoveWindow(This->hWnd, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), TRUE);
+
+    SetCursor(LoadCursor((HINSTANCE)GetWindowLong(This->hWnd, GWL_HINSTANCE), IDC_ARROW));
+    ShowWindow(This->hWnd, SW_SHOW);
 
     return DD_OK;
 }
