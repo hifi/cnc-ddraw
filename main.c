@@ -148,11 +148,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 ddraw->key_ctrl = TRUE;
             }
-            if(wParam == VK_MENU)
+            if(wParam == VK_TAB)
             {
-                ddraw->key_alt = TRUE;
+                ddraw->key_tab = TRUE;
             }
-            if(ddraw->key_alt && ddraw->key_ctrl)
+            if(ddraw->key_tab && ddraw->key_ctrl)
             {
                 mouse_unlock();
             }
@@ -162,9 +162,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 ddraw->key_ctrl = FALSE;
             }
-            if(wParam == VK_MENU)
+            if(wParam == VK_TAB)
             {
-                ddraw->key_alt = FALSE;
+                ddraw->key_tab = FALSE;
             }
             break;
         case WM_LBUTTONDOWN:

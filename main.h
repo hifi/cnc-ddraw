@@ -45,7 +45,7 @@ typedef struct IDirectDrawImpl
     BOOL locked;
 
     BOOL key_ctrl;
-    BOOL key_alt;
+    BOOL key_tab;
 
     HMODULE real_dll;
     LPDIRECTDRAW real_ddraw;
