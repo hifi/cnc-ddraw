@@ -21,6 +21,56 @@
 #include "main.h"
 #include "surface.h"
 
+#define MAX_NOPS 16
+
+struct game
+{
+    DWORD check;            /* memory address of one GetCursorPos call (for game identifying, 2E FF 15) */
+    DWORD hook;             /* memory address where the GetCursorPos call pointer is */
+    DWORD nops[MAX_NOPS];   /* points where a 1+7 byte import call is NOP'd (ClipCursor, ShowCursor), first byte is a PUSH that has to be removed */
+};
+
+struct game games[] =
+{
+    /* Command & Conquer */
+    {
+        0x004C894A, /* address should contain 2E FF 15 */
+        0x005B0184, /* GetCursorPos thunk addr */
+        {
+            0x004C88CB, /* ClipCursor */
+            0x004C88DF, /* ClipCursor */
+            0x0041114E, /* ShowCursor */
+            0x00411197, /* ShowCursor */
+            0x0045448F, /* ShowCursor */
+            0x004CCE61, /* SetCursor */
+            0x00000000
+        },
+    },
+    /* Red Alert */
+    {
+        0x005B39C0,
+        0x005E6848,
+        {
+            0x005C194C, /* ClipCursor */
+            0x005C196C, /* ClipCursor */
+            0x004F839F, /* ShowCursor */
+            0x005B3A25, /* ShowCursor */
+            0x005B3A72, /* ShowCursor */
+            0x005A02CC, /* SetCursor */
+            0x005A0309, /* SetCursor */
+            0x005A0323, /* SetCursor */
+            0x00000000
+        },
+    },
+    {
+        0x00000000,
+        0x00000000,
+        {
+            0x00000000
+        },
+    },
+};
+
 BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
 {
     lpPoint->x = ddraw->cursor.x;
@@ -62,15 +112,35 @@ void mouse_init(HWND hWnd)
     DWORD tmp;
     HANDLE hProcess;
     DWORD dwWritten;
+    int i;
+
+    unsigned char buf[8];
 
     GetWindowThreadProcessId(hWnd, &tmp);
     hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, tmp);
 
     tmp = (DWORD)fake_GetCursorPos;
 
-    // Command & Conquer
-    //WriteProcessMemory(hProcess, (void *)0x005B0184, &tmp, 4, &dwWritten);
+    struct game *ptr = &games[0];
 
-    // Red Alert
-    //WriteProcessMemory(hProcess, (void *)0x005E6848, &tmp, 4, &dwWritten);
+    while(ptr->check)
+    {
+        ReadProcessMemory(hProcess, (void *)ptr->check, buf, 3, &dwWritten);
+        if(buf[0] == 0x2E && buf[1] == 0xFF && buf[2] == 0x15)
+        {
+            WriteProcessMemory(hProcess, (void *)ptr->hook, &tmp, 4, &dwWritten);
+
+            memset(buf, 0x90, 8);
+            for(i=0;i<MAX_NOPS;i++)
+            {
+                if(!ptr->nops[i])
+                    break;
+
+                WriteProcessMemory(hProcess, (void *)ptr->nops[i], buf, 8, &dwWritten);
+            }
+
+            return;
+        }
+        ptr++;
+    }
 }
