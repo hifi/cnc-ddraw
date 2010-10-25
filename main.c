@@ -150,6 +150,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 mouse_unlock();
             }
+            else
+            {
+                mouse_lock();
+            }
+            SetCursor(LoadCursor((HINSTANCE)GetWindowLong(ddraw->hWnd, GWL_HINSTANCE), IDC_ARROW));
             return 0;
         case WM_KEYDOWN:
             if(wParam == VK_CONTROL)
@@ -289,11 +294,7 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     int y = (mode.dmPelsHeight / 2) - (This->height / 2);
     RECT dst = { x, y, This->width+x, This->height+y };
     AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
-    MoveWindow(This->hWnd, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), TRUE);
-
-    SetCursor(LoadCursor((HINSTANCE)GetWindowLong(This->hWnd, GWL_HINSTANCE), IDC_ARROW));
-    ShowWindow(This->hWnd, SW_SHOW);
-
+    SetWindowPos(This->hWnd, HWND_TOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
     return DD_OK;
 }
 
