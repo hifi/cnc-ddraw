@@ -36,6 +36,7 @@ typedef struct IDirectDrawImpl
     DWORD width;
     DWORD height;
     DWORD bpp;
+    DWORD freq;
 
     HWND hWnd;
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);

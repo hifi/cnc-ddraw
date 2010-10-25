@@ -143,6 +143,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg)
     {
+        case WM_NCACTIVATE:
+            /* game's drawing loop stops when it inactivates, so don't */
+            DefWindowProc(hWnd, uMsg, wParam, lParam);
+            if(wParam == FALSE)
+            {
+                mouse_unlock();
+            }
+            return 0;
         case WM_KEYDOWN:
             if(wParam == VK_CONTROL)
             {
@@ -171,7 +179,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if(!ddraw->locked)
             {
                 mouse_lock();
-                return DefWindowProc(hWnd, uMsg, wParam, lParam);
+                return 0;
             }
             break;
         case WM_MOUSEMOVE:
@@ -181,18 +189,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 ddraw->cursor.y = HIWORD(lParam);
             }
             break;
-        case WM_SETFOCUS:
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
-        case WM_KILLFOCUS:
-            mouse_unlock();
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
         case WM_PAINT:
             if(ddraw_primary)
             {
                 SetEvent(ddraw_primary->flipEvent);
             }
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
-
+            break;
         case WM_MOVE:
             ddraw->winpos.x = LOWORD(lParam);
             ddraw->winpos.y = HIWORD(lParam);
@@ -210,7 +212,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 SetEvent(ddraw_primary->flipEvent);
             }
             break;
-
         case WM_WINDOWPOSCHANGED:
             GetClientRect(ddraw->hWnd, &ddraw->cursorclip);
 
@@ -255,6 +256,8 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
 
 HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD height, DWORD bpp)
 {
+    DEVMODE mode;
+
     printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
 
     /* currently we only support 8 bit modes */
@@ -263,17 +266,27 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
         return DDERR_INVALIDMODE;
     }
 
+    mode.dmSize = sizeof(DEVMODE);
+    mode.dmDriverExtra = 0;
+
+    if(EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &mode) == FALSE)
+    {
+        /* not expected */
+        return DDERR_UNSUPPORTED;
+    }
+
     This->width = width;
     This->height = height;
     This->bpp = bpp;
+    This->freq = mode.dmDisplayFrequency;
 
     mouse_unlock();
 
     SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER | WS_SYSMENU /*| WS_MINIMIZEBOX*/);
 
     /* center the window with correct dimensions */
-    int x = (GetSystemMetrics(SM_CXSCREEN) / 2) - (This->width / 2);
-    int y = (GetSystemMetrics(SM_CYSCREEN) / 2) - (This->height / 2);
+    int x = (mode.dmPelsWidth / 2) - (This->width / 2);
+    int y = (mode.dmPelsHeight / 2) - (This->height / 2);
     RECT dst = { x, y, This->width+x, This->height+y };
     AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
     MoveWindow(This->hWnd, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), TRUE);

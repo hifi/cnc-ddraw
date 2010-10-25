@@ -544,13 +544,15 @@ DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
     IDirectDrawSurface_SetClipper(primary, clipper);
 
     This->flipEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    WaitForSingleObject(This->flipEvent, INFINITE);
+
+    DWORD tick_start;
+    DWORD tick_end;
+    DWORD frame_len = 1000.0f / This->parent->freq;
 
     while(This->dRun)
     {
-        WaitForSingleObject(This->flipEvent, INFINITE);
-
-        if(!This->dRun)
-            break;
+        tick_start = GetTickCount();
 
         if(IDirectDrawSurface_Lock(primary, NULL, &ddsd, DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL) != DD_OK)
             continue;
@@ -566,7 +568,12 @@ DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
 
         IDirectDrawSurface_Unlock(primary, NULL);
 
-        ResetEvent(This->flipEvent);
+        tick_end = GetTickCount();
+
+        if(tick_end - tick_start < frame_len)
+        {
+            Sleep( frame_len - (tick_end - tick_start) );
+        }
     }
 
     IDirectDrawClipper_Release(clipper);
