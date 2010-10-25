@@ -287,7 +287,7 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
     mouse_unlock();
 
-    SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER | WS_SYSMENU /*| WS_MINIMIZEBOX*/);
+    SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER);
 
     /* center the window with correct dimensions */
     int x = (mode.dmPelsWidth / 2) - (This->width / 2);
