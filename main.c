@@ -241,18 +241,29 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
         return DDERR_INVALIDPARAMS;
     }
 
-    mouse_init(hWnd);
-
     This->hWnd = hWnd;
 
-    This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
-    SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
-
 #ifndef USE_OPENGL
-    if(IDirectDraw_SetCooperativeLevel(This->real_ddraw, hWnd, DDSCL_NORMAL) != DD_OK)
+    if(This->windowed)
     {
-        printf(" internal SetCooperativeLevel failed\n");
-        return DDERR_GENERIC;
+        This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
+        SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
+
+        mouse_init(hWnd);
+
+        if(IDirectDraw_SetCooperativeLevel(This->real_ddraw, hWnd, DDSCL_NORMAL) != DD_OK)
+        {
+            printf(" internal SetCooperativeLevel failed\n");
+            return DDERR_GENERIC;
+        }
+    }
+    else
+    {
+        if(IDirectDraw_SetCooperativeLevel(This->real_ddraw, hWnd, dwFlags) != DD_OK)
+        {
+            printf(" internal SetCooperativeLevel failed\n");
+            return DDERR_GENERIC;
+        }
     }
 #endif
 
@@ -285,16 +296,29 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     This->bpp = bpp;
     This->freq = mode.dmDisplayFrequency;
 
-    mouse_unlock();
+    if(This->windowed)
+    {
+        mouse_unlock();
 
-    SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER);
+        SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER);
 
-    /* center the window with correct dimensions */
-    int x = (mode.dmPelsWidth / 2) - (This->width / 2);
-    int y = (mode.dmPelsHeight / 2) - (This->height / 2);
-    RECT dst = { x, y, This->width+x, This->height+y };
-    AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
-    SetWindowPos(This->hWnd, HWND_TOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
+        /* center the window with correct dimensions */
+        int x = (mode.dmPelsWidth / 2) - (This->width / 2);
+        int y = (mode.dmPelsHeight / 2) - (This->height / 2);
+        RECT dst = { x, y, This->width+x, This->height+y };
+        AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
+        SetWindowPos(This->hWnd, HWND_TOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
+    }
+#ifndef USE_OPENGL
+    else
+    {
+        if(IDirectDraw_SetDisplayMode(This->real_ddraw, width, height, mode.dmBitsPerPel) != DD_OK)
+        {
+            printf(" error setting real display mode\n");
+            return DDERR_INVALIDMODE;
+        }
+    }
+#endif
     return DD_OK;
 }
 
@@ -394,6 +418,9 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;
     ddraw = This;
+    InitializeCriticalSection(&This->cs);
+
+    This->windowed = TRUE;
 
 #ifndef USE_OPENGL
     This->real_dll = LoadLibrary("system32\\ddraw.dll");
