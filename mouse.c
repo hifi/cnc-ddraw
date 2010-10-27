@@ -87,7 +87,6 @@ void mouse_lock()
         ddraw->locked = TRUE;
         ClipCursor(&ddraw->cursorclip);
         while(ShowCursor(FALSE) > 0);
-        SetEvent(ddraw_primary->flipEvent);
     }
 }
 
@@ -107,11 +106,6 @@ void mouse_unlock()
     ClipCursor(NULL);
     ddraw->cursor.x = ddraw->width / 2;
     ddraw->cursor.y = ddraw->height / 2;
-
-    if(ddraw_primary)
-    {
-        SetEvent(ddraw_primary->flipEvent);
-    }
 }
 
 void mouse_init(HWND hWnd)

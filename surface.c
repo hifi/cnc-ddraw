@@ -51,7 +51,6 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
         if(This->dThread)
         {
             This->dRun = FALSE;
-            SetEvent(This->flipEvent);
             WaitForSingleObject(This->dThread, INFINITE);
             This->dThread = NULL;
         }
@@ -98,6 +97,12 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
     }
 #endif
 
+    if(This->caps & DDSCAPS_PRIMARYSURFACE)
+    {
+        EnterCriticalSection(&ddraw->cs);
+        LeaveCriticalSection(&ddraw->cs);
+    }
+
     if(Source)
     {
         int dx=0,dy=0; 
@@ -125,7 +130,11 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
         } 
     }
 
-    SetEvent(This->flipEvent);
+    if(This->caps & DDSCAPS_PRIMARYSURFACE)
+    {
+        EnterCriticalSection(&ddraw->cs);
+        LeaveCriticalSection(&ddraw->cs);
+    }
 
     return DD_OK;
 }
@@ -327,7 +336,8 @@ HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPVOID lpRe
 
     if(This->caps & DDSCAPS_PRIMARYSURFACE)
     {
-        SetEvent(This->flipEvent);
+        EnterCriticalSection(&ddraw->cs);
+        LeaveCriticalSection(&ddraw->cs);
     }
 
     return DD_OK;
@@ -474,12 +484,13 @@ DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This)
     This->hRC = wglCreateContext( This->hDC );
     wglMakeCurrent( This->hDC, This->hRC );
 
-    This->flipEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    DWORD tick_start;
+    DWORD tick_end;
+    DWORD frame_len = 1000.0f / 60.0f /*This->parent->freq*/;
 
     while(This->dRun)
     {
-        WaitForSingleObject(This->flipEvent, INFINITE);
-        ResetEvent(This->flipEvent);
+        tick_start = GetTickCount();
 
         /* convert ddraw surface to opengl texture */
         for(i=0; i<This->height; i++)
@@ -505,6 +516,15 @@ DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This)
         glEnd();
 
         SwapBuffers(This->hDC);
+
+        tick_end = GetTickCount();
+
+        if(tick_end - tick_start < frame_len)
+        {
+            EnterCriticalSection(&ddraw->cs);
+            Sleep( frame_len - (tick_end - tick_start) );
+            LeaveCriticalSection(&ddraw->cs);
+        }
     }
 
     free(glTex);
@@ -543,19 +563,15 @@ DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
     IDirectDrawClipper_SetHWnd(clipper, 0, This->hWnd);
     IDirectDrawSurface_SetClipper(primary, clipper);
 
-    This->flipEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    WaitForSingleObject(This->flipEvent, INFINITE);
-
     DWORD tick_start;
     DWORD tick_end;
-    DWORD frame_len = 1000.0f / This->parent->freq;
+    DWORD frame_len = 1000.0f / 60.0f /*This->parent->freq*/;
 
     while(This->dRun)
     {
         tick_start = GetTickCount();
 
-        if(IDirectDrawSurface_Lock(primary, NULL, &ddsd, DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL) != DD_OK)
-            continue;
+        IDirectDrawSurface_Lock(primary, NULL, &ddsd, DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL);
 
         /* convert ddraw surface to opengl texture */
         for(i=0; i<This->height; i++)
@@ -572,7 +588,9 @@ DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
 
         if(tick_end - tick_start < frame_len)
         {
+            EnterCriticalSection(&ddraw->cs);
             Sleep( frame_len - (tick_end - tick_start) );
+            LeaveCriticalSection(&ddraw->cs);
         }
     }
 

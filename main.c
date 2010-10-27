@@ -194,12 +194,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 ddraw->cursor.y = HIWORD(lParam);
             }
             break;
-        case WM_PAINT:
-            if(ddraw_primary)
-            {
-                SetEvent(ddraw_primary->flipEvent);
-            }
-            break;
         case WM_MOVE:
             ddraw->winpos.x = LOWORD(lParam);
             ddraw->winpos.y = HIWORD(lParam);
@@ -210,11 +204,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if(ddraw->winpos.y < 0)
             {
                 ddraw->winpos.y = 0;
-            }
-
-            if(ddraw_primary)
-            {
-                SetEvent(ddraw_primary->flipEvent);
             }
             break;
         case WM_WINDOWPOSCHANGED:
