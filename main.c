@@ -316,6 +316,7 @@ HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HAN
 #if _DEBUG
     printf("DirectDraw::WaitForVerticalBlank(This=%p, ...)\n", This);
 #endif
+    WaitForSingleObject(ddraw->ev, INFINITE);
     return DD_OK;
 }
 
@@ -407,7 +408,6 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;
     ddraw = This;
-    InitializeCriticalSection(&This->cs);
 
     This->windowed = TRUE;
 

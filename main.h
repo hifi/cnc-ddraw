@@ -39,6 +39,7 @@ typedef struct IDirectDrawImpl
     DWORD freq;
     BOOL windowed;
     CRITICAL_SECTION cs;
+    HANDLE ev;
 
     HWND hWnd;
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);

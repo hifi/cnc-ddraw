@@ -99,8 +99,7 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
 
     if(This->caps & DDSCAPS_PRIMARYSURFACE)
     {
-        EnterCriticalSection(&ddraw->cs);
-        LeaveCriticalSection(&ddraw->cs);
+        WaitForSingleObject(ddraw->ev, INFINITE);
     }
 
     if(Source)
@@ -128,12 +127,6 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
         { 
             memcpy(to, from, s); 
         } 
-    }
-
-    if(This->caps & DDSCAPS_PRIMARYSURFACE)
-    {
-        EnterCriticalSection(&ddraw->cs);
-        LeaveCriticalSection(&ddraw->cs);
     }
 
     return DD_OK;
@@ -334,12 +327,6 @@ HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPVOID lpRe
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
 
-    if(This->caps & DDSCAPS_PRIMARYSURFACE)
-    {
-        EnterCriticalSection(&ddraw->cs);
-        LeaveCriticalSection(&ddraw->cs);
-    }
-
     return DD_OK;
 }
 
@@ -427,11 +414,6 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
             Surface->width = This->width;
             Surface->height = This->height;
             Surface->hWnd = This->hWnd;
-#if USE_OPENGL
-            Surface->dThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ogl_Thread, (void *)Surface, 0, NULL);
-#else
-            Surface->dThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dd_Thread, (void *)Surface, 0, NULL);
-#endif
         }
 
         dump_ddscaps(lpDDSurfaceDesc->ddsCaps.dwCaps);
@@ -457,6 +439,15 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
     Surface->Ref = 0;
     ddraw_surface_AddRef(Surface);
+
+    if(Surface->caps & DDSCAPS_PRIMARYSURFACE)
+    {
+#if USE_OPENGL
+        Surface->dThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ogl_Thread, (void *)Surface, 0, NULL);
+#else
+        Surface->dThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dd_Thread, (void *)Surface, 0, NULL);
+#endif
+    }
 
     return DD_OK;
 }
@@ -563,36 +554,49 @@ DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
     IDirectDrawClipper_SetHWnd(clipper, 0, This->hWnd);
     IDirectDrawSurface_SetClipper(primary, clipper);
 
+#ifdef FRAME_LIMIT
     DWORD tick_start;
     DWORD tick_end;
-    DWORD frame_len = 1000.0f / 60.0f /*This->parent->freq*/;
+    DWORD frame_len = 1000.0f / This->parent->freq;
+#endif
+
+    InitializeCriticalSection(&ddraw->cs);
+    ddraw->ev = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     while(This->dRun)
     {
-        tick_start = GetTickCount();
+        ResetEvent(ddraw->ev);
 
+#ifdef FRAME_LIMIT
+        tick_start = GetTickCount();
+#endif
         IDirectDrawSurface_Lock(primary, NULL, &ddsd, DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL);
 
-        /* convert ddraw surface to opengl texture */
-        for(i=0; i<This->height; i++)
+        if(This->palette)
         {
-            for(j=0; j<This->width; j++)
+            for(i=0; i<This->height; i++)
             {
-                ((int *)ddsd.lpSurface)[(i+This->parent->winpos.y)*width+(j+This->parent->winpos.x)] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
+                for(j=0; j<This->width; j++)
+                {
+                    ((int *)ddsd.lpSurface)[(i+This->parent->winpos.y)*width+(j+This->parent->winpos.x)] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
+                }
             }
         }
 
         IDirectDrawSurface_Unlock(primary, NULL);
 
+#ifdef FRAME_LIMIT
         tick_end = GetTickCount();
 
         if(tick_end - tick_start < frame_len)
         {
-            EnterCriticalSection(&ddraw->cs);
             Sleep( frame_len - (tick_end - tick_start) );
-            LeaveCriticalSection(&ddraw->cs);
         }
+#endif
+        SetEvent(ddraw->ev);
     }
+
+    CloseHandle(ddraw->ev);
 
     IDirectDrawClipper_Release(clipper);
     IDirectDrawSurface_Release(primary);
