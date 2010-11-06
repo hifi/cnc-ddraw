@@ -384,8 +384,19 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
 
     if(ddraw)
     {
+        /* FIXME: check the calling module before passing the call! */
+        return ddraw->DirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
+
+        /*
         printf(" returning DDERR_DIRECTDRAWALREADYCREATED\n");
         return DDERR_DIRECTDRAWALREADYCREATED;
+        */
+    } 
+
+    HMODULE real_dll = LoadLibrary("system32\\ddraw.dll");
+    if(!real_dll)
+    {
+        return DDERR_GENERIC;
     }
 
     IDirectDrawImpl *This = (IDirectDrawImpl *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectDrawImpl));
@@ -393,6 +404,16 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;
     ddraw = This;
+
+    This->DirectDrawCreate = (HRESULT WINAPI (*)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*))GetProcAddress(real_dll, "DirectDrawCreate");
+
+    CloseHandle(real_dll);
+
+    if(!This->DirectDrawCreate)
+    {
+        ddraw_Release(This);
+        return DDERR_GENERIC;
+    }
 
     /* load configuration options from ddraw.ini */
     char cwd[MAX_PATH];

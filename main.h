@@ -39,6 +39,9 @@ typedef struct IDirectDrawImpl
     DWORD freq;
     BOOL windowed;
 
+    /* real export from system32\ddraw.dll */
+    HRESULT WINAPI (*DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
+
     struct render
     {
         LPTHREAD_START_ROUTINE (*main)(void *);

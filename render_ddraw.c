@@ -65,19 +65,7 @@ struct render_ddraw_impl render_ddraw =
 
 HRESULT WINAPI render_ddraw_Initialize()
 {
-    HMODULE real_dll;
-    HRESULT WINAPI (*real_DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
-
-    real_dll = LoadLibrary("system32\\ddraw.dll");
-    if(!real_dll)
-    {
-        return DDERR_GENERIC;
-    }
-
-    render_ddraw.ddraw = NULL;
-
-    real_DirectDrawCreate = (HRESULT WINAPI (*)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*))GetProcAddress(real_dll, "DirectDrawCreate");
-    if(real_DirectDrawCreate(NULL, &render_ddraw.ddraw, NULL) != DD_OK)
+    if(ddraw->DirectDrawCreate(NULL, &render_ddraw.ddraw, NULL) != DD_OK)
     {
         return DDERR_GENERIC;
     }
