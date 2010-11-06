@@ -27,6 +27,11 @@ struct render_opengl_impl
     HRESULT WINAPI (*SetDisplayMode)(DWORD width, DWORD height);
     HRESULT WINAPI (*RestoreDisplayMode)(void);
 
+    int maxfps;
+    int width;
+    int height;
+    int filter;
+
     HANDLE thread;
     BOOL run;
     HANDLE ev;
@@ -43,6 +48,11 @@ struct render_opengl_impl render_opengl =
     render_opengl_Initialize,
     render_opengl_SetDisplayMode,
     render_opengl_RestoreDisplayMode,
+
+    0,
+    0,
+    0,
+    0,
 
     NULL,
     TRUE,
@@ -88,19 +98,28 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
     hRC = wglCreateContext( hDC );
     wglMakeCurrent( hDC, hRC );
 
-#ifdef FRAME_LIMIT
     DWORD tick_start;
     DWORD tick_end;
-    DWORD frame_len = 1000.0f / ddraw->freq;
-#endif
+    DWORD frame_len;
+
+    if(render_opengl.maxfps < 0)
+    {
+        render_opengl.maxfps = ddraw->freq;
+    }
+
+    if(render_opengl.maxfps > 0)
+    {
+        frame_len = 1000.0f / render_opengl.maxfps;
+    }
 
     render_opengl.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     while(render_opengl.run)
     {
-#ifdef FRAME_LIMIT
-        tick_start = GetTickCount();
-#endif
+        if(render_opengl.maxfps > 0)
+        {
+            tick_start = GetTickCount();
+        }
 
         /* convert ddraw surface to opengl texture */
         for(i=0; i<surface->height; i++)
@@ -111,10 +130,20 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
             }
         }
 
+        glViewport(0, 0, render_opengl.width, render_opengl.height);
+
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, surface->width, surface->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, glTex);
 
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+        if(render_opengl.filter)
+        {
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+        }
+        else
+        {
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+        }
 
         glEnable(GL_TEXTURE_2D);
 
@@ -127,14 +156,15 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
 
         SwapBuffers(hDC);
 
-#ifdef FRAME_LIMIT
-        tick_end = GetTickCount();
-
-        if(tick_end - tick_start < frame_len)
+        if(render_opengl.maxfps > 0)
         {
-            Sleep( frame_len - (tick_end - tick_start) );
+            tick_end = GetTickCount();
+
+            if(tick_end - tick_start < frame_len)
+            {
+                Sleep( frame_len - (tick_end - tick_start) );
+            }
         }
-#endif
 
         SetEvent(render_opengl.ev);
     }

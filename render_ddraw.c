@@ -27,6 +27,11 @@ struct render_ddraw_impl
     HRESULT WINAPI (*SetDisplayMode)(DWORD width, DWORD height);
     HRESULT WINAPI (*RestoreDisplayMode)(void);
 
+    int maxfps;
+    int width;
+    int height;
+    int filter;
+
     HANDLE thread;
     BOOL run;
     HANDLE ev;
@@ -45,6 +50,11 @@ struct render_ddraw_impl render_ddraw =
     render_ddraw_Initialize,
     render_ddraw_SetDisplayMode,
     render_ddraw_RestoreDisplayMode,
+
+    0,
+    0,
+    0,
+    0,
 
     NULL,
     TRUE,
@@ -134,11 +144,19 @@ DWORD WINAPI render_ddraw_main(IDirectDrawSurfaceImpl *surface)
     IDirectDrawClipper_SetHWnd(clipper, 0, ddraw->hWnd);
     IDirectDrawSurface_SetClipper(primary, clipper);
 
-#ifdef FRAME_LIMIT
     DWORD tick_start;
     DWORD tick_end;
-    DWORD frame_len = 1000.0f / ddraw->freq;
-#endif
+    DWORD frame_len;
+
+    if(render_ddraw.maxfps < 0)
+    {
+        render_ddraw.maxfps = ddraw->freq;
+    }
+
+    if(render_ddraw.maxfps > 0)
+    {
+        frame_len = 1000.0f / render_ddraw.maxfps;
+    }
 
     render_ddraw.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
 
@@ -146,9 +164,11 @@ DWORD WINAPI render_ddraw_main(IDirectDrawSurfaceImpl *surface)
     {
         ResetEvent(render_ddraw.ev);
 
-#ifdef FRAME_LIMIT
-        tick_start = GetTickCount();
-#endif
+        if(render_ddraw.maxfps > 0)
+        {
+            tick_start = GetTickCount();
+        }
+
         IDirectDrawSurface_Lock(primary, NULL, &ddsd, DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL);
 
         if(surface->palette)
@@ -164,14 +184,16 @@ DWORD WINAPI render_ddraw_main(IDirectDrawSurfaceImpl *surface)
 
         IDirectDrawSurface_Unlock(primary, NULL);
 
-#ifdef FRAME_LIMIT
-        tick_end = GetTickCount();
-
-        if(tick_end - tick_start < frame_len)
+        if(render_ddraw.maxfps > 0)
         {
-            Sleep( frame_len - (tick_end - tick_start) );
+            tick_end = GetTickCount();
+
+            if(tick_end - tick_start < frame_len)
+            {
+                Sleep( frame_len - (tick_end - tick_start) );
+            }
         }
-#endif
+
         SetEvent(render_ddraw.ev);
     }
 

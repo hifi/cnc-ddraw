@@ -16,6 +16,7 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <ctype.h>
 #include "ddraw.h"
 
 #include "main.h"
@@ -272,6 +273,15 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     This->bpp = bpp;
     This->freq = mode.dmDisplayFrequency;
 
+    if(This->render->width < This->width)
+    {
+        This->render->width = This->width;
+    }
+    if(This->render->height < This->height)
+    {
+        This->render->height = This->height;
+    }
+
     if(This->windowed)
     {
         mouse_unlock();
@@ -279,9 +289,9 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
         SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER);
 
         /* center the window with correct dimensions */
-        int x = (mode.dmPelsWidth / 2) - (This->width / 2);
-        int y = (mode.dmPelsHeight / 2) - (This->height / 2);
-        RECT dst = { x, y, This->width+x, This->height+y };
+        int x = (mode.dmPelsWidth / 2) - (This->render->width / 2);
+        int y = (mode.dmPelsHeight / 2) - (This->render->height / 2);
+        RECT dst = { x, y, This->render->width+x, This->render->height+y };
         AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
         SetWindowPos(This->hWnd, HWND_TOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
     }
@@ -384,8 +394,56 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     *lplpDD = (LPDIRECTDRAW)This;
     ddraw = This;
 
-    This->windowed = TRUE;
-    This->render = &render_ddraw;
+    /* load configuration options from ddraw.ini */
+    char cwd[MAX_PATH];
+    char ini_path[MAX_PATH];
+    char tmp[256];
+    GetCurrentDirectoryA(sizeof(cwd), cwd);
+    snprintf(ini_path, sizeof(ini_path), "%s\\ddraw.ini", cwd);
+
+    GetPrivateProfileStringA("ddraw", "renderer", "ddraw", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'o')
+    {
+        This->render = &render_opengl;
+    }
+    else
+    {
+        This->render = &render_ddraw;
+    }
+
+    GetPrivateProfileStringA("ddraw", "windowed", "TRUE", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tmp[0] == '0')
+    {
+        This->windowed = FALSE;
+    }
+    else
+    {
+        This->windowed = TRUE;
+    }
+
+    This->render->maxfps = GetPrivateProfileIntA("ddraw", "maxfps", -1, ini_path);
+    This->render->width = GetPrivateProfileIntA("ddraw", "width", 640, ini_path);
+    if(This->render->width < 640)
+    {
+        This->render->width = 640;
+    }
+
+    This->render->height = GetPrivateProfileIntA("ddraw", "height", 400, ini_path);
+    if(This->render->height < 400)
+    {
+        This->render->height = 400;
+    }
+
+    GetPrivateProfileStringA("ddraw", "filter", tmp, tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'l' || tolower(tmp[3]) == 'l')
+    {
+        This->render->filter = 1;
+    }
+    else
+    {
+        This->render->filter = 0;
+    }
+
     This->render->Initialize();
 
     This->Ref = 0;

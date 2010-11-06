@@ -46,6 +46,11 @@ typedef struct IDirectDrawImpl
         HRESULT WINAPI (*SetDisplayMode)(DWORD width, DWORD height);
         HRESULT WINAPI (*RestoreDisplayMode)(void);
 
+        int maxfps;
+        int width;
+        int height;
+        int filter;
+
         HANDLE thread;
         BOOL run;
         HANDLE ev;
