@@ -20,12 +20,10 @@
 #include "main.h"
 #include "surface.h"
 
-DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This);
-DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This);
-void dump_ddsd(DWORD);
-void dump_ddscaps(DWORD);
-
 IDirectDrawSurfaceImpl *ddraw_primary = NULL;
+
+void dump_ddscaps(DWORD dwCaps);
+void dump_ddsd(DWORD dwFlags);
 
 HRESULT __stdcall ddraw_surface_QueryInterface(IDirectDrawSurfaceImpl *This, REFIID riid, void **obj)
 {
@@ -48,11 +46,10 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
 
     if(This->Ref == 0)
     {
-        if(This->dThread)
+        if(This->caps == DDSCAPS_PRIMARYSURFACE)
         {
-            This->dRun = FALSE;
-            WaitForSingleObject(This->dThread, INFINITE);
-            This->dThread = NULL;
+            ddraw->render->run = FALSE;
+            WaitForSingleObject(ddraw->render->thread, INFINITE);
         }
         if(This->surface)
         {
@@ -99,7 +96,7 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
 
     if(This->caps & DDSCAPS_PRIMARYSURFACE)
     {
-        WaitForSingleObject(ddraw->ev, INFINITE);
+        WaitForSingleObject(ddraw->render->ev, INFINITE);
     }
 
     if(Source)
@@ -401,9 +398,7 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
     Surface->lpVtbl = &siface;
 
     /* private stuff */
-    Surface->parent = This;
     Surface->bpp = This->bpp;
-    Surface->dRun = TRUE;
 
     if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
     {
@@ -413,7 +408,6 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
             Surface->width = This->width;
             Surface->height = This->height;
-            Surface->hWnd = This->hWnd;
         }
 
         dump_ddscaps(lpDDSurfaceDesc->ddsCaps.dwCaps);
@@ -442,169 +436,11 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
     if(Surface->caps & DDSCAPS_PRIMARYSURFACE)
     {
-#if USE_OPENGL
-        Surface->dThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ogl_Thread, (void *)Surface, 0, NULL);
-#else
-        Surface->dThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dd_Thread, (void *)Surface, 0, NULL);
-#endif
+        This->render->thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)This->render->main, (void *)Surface, 0, NULL);
     }
 
     return DD_OK;
 }
-
-#if USE_OPENGL
-DWORD WINAPI ogl_Thread(IDirectDrawSurfaceImpl *This)
-{
-    int i,j;
-    PIXELFORMATDESCRIPTOR pfd;
-
-    This->hDC = GetDC(This->hWnd);
-
-    int *glTex = malloc(This->width * This->height * sizeof(int));
-
-    memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
-    pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-    pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = 24;
-    pfd.cDepthBits = 16;
-    pfd.iLayerType = PFD_MAIN_PLANE;
-    SetPixelFormat( This->hDC, ChoosePixelFormat( This->hDC, &pfd ), &pfd );
-
-    This->hRC = wglCreateContext( This->hDC );
-    wglMakeCurrent( This->hDC, This->hRC );
-
-    DWORD tick_start;
-    DWORD tick_end;
-    DWORD frame_len = 1000.0f / 60.0f /*This->parent->freq*/;
-
-    while(This->dRun)
-    {
-        tick_start = GetTickCount();
-
-        /* convert ddraw surface to opengl texture */
-        for(i=0; i<This->height; i++)
-        {
-            for(j=0; j<This->width; j++)
-            {
-                glTex[i*This->width+j] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
-            }
-        }
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, This->width, This->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, glTex);
-
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-
-        glEnable(GL_TEXTURE_2D);
-
-        glBegin(GL_TRIANGLE_FAN);
-        glTexCoord2f(0,0); glVertex2f(-1,  1);
-        glTexCoord2f(1,0); glVertex2f( 1,  1);
-        glTexCoord2f(1,1); glVertex2f( 1, -1);	
-        glTexCoord2f(0,1); glVertex2f(-1, -1);
-        glEnd();
-
-        SwapBuffers(This->hDC);
-
-        tick_end = GetTickCount();
-
-        if(tick_end - tick_start < frame_len)
-        {
-            EnterCriticalSection(&ddraw->cs);
-            Sleep( frame_len - (tick_end - tick_start) );
-            LeaveCriticalSection(&ddraw->cs);
-        }
-    }
-
-    free(glTex);
-
-    wglMakeCurrent(NULL, NULL);
-    wglDeleteContext(This->hRC);
-    ReleaseDC(This->hWnd, This->hDC);
-
-    return 0;
-}
-
-#else // if USE_OPENGL
-
-DWORD WINAPI dd_Thread(IDirectDrawSurfaceImpl *This)
-{
-    int i,j;
-    DDSURFACEDESC ddsd;
-    LPDIRECTDRAWSURFACE primary;
-    LPDIRECTDRAWCLIPPER clipper;
-    DWORD width;
-
-    memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-    ddsd.dwSize = sizeof(DDSURFACEDESC);
-    ddsd.dwFlags = DDSD_CAPS;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-
-    IDirectDraw_CreateSurface(This->parent->real_ddraw, &ddsd, &primary, NULL);
-
-    memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-    ddsd.dwSize = sizeof(DDSURFACEDESC);
-    IDirectDrawSurface_GetSurfaceDesc(primary, &ddsd);
-
-    width = ddsd.dwWidth * ddsd.lPitch / (ddsd.dwWidth * ddsd.ddpfPixelFormat.dwRGBBitCount / 8);
-
-    IDirectDraw_CreateClipper(This->parent->real_ddraw, 0, &clipper, NULL);
-    IDirectDrawClipper_SetHWnd(clipper, 0, This->hWnd);
-    IDirectDrawSurface_SetClipper(primary, clipper);
-
-#ifdef FRAME_LIMIT
-    DWORD tick_start;
-    DWORD tick_end;
-    DWORD frame_len = 1000.0f / This->parent->freq;
-#endif
-
-    InitializeCriticalSection(&ddraw->cs);
-    ddraw->ev = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-    while(This->dRun)
-    {
-        ResetEvent(ddraw->ev);
-
-#ifdef FRAME_LIMIT
-        tick_start = GetTickCount();
-#endif
-        IDirectDrawSurface_Lock(primary, NULL, &ddsd, DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL);
-
-        if(This->palette)
-        {
-            for(i=0; i<This->height; i++)
-            {
-                for(j=0; j<This->width; j++)
-                {
-                    ((int *)ddsd.lpSurface)[(i+This->parent->winpos.y)*width+(j+This->parent->winpos.x)] = This->palette->data[((unsigned char *)This->surface)[i*This->lPitch + j*This->lXPitch]];
-                }
-            }
-        }
-
-        IDirectDrawSurface_Unlock(primary, NULL);
-
-#ifdef FRAME_LIMIT
-        tick_end = GetTickCount();
-
-        if(tick_end - tick_start < frame_len)
-        {
-            Sleep( frame_len - (tick_end - tick_start) );
-        }
-#endif
-        SetEvent(ddraw->ev);
-    }
-
-    CloseHandle(ddraw->ev);
-
-    IDirectDrawClipper_Release(clipper);
-    IDirectDrawSurface_Release(primary);
-
-    return 0;
-}
-
-#endif
 
 void dump_ddscaps(DWORD dwCaps)
 {

@@ -30,7 +30,8 @@ typedef struct IDirectDrawPaletteImpl
 
     ULONG Ref;
 
-    int data[256];
+    int data_bgr[256];
+    int data_rgb[256];
 
 } IDirectDrawPaletteImpl;
 

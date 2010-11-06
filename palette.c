@@ -34,11 +34,8 @@ HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD d
 
     for(i=0;i<256;i++)
     {
-#if USE_OPENGL
-        This->data[i] = (lpEntries[i].peBlue<<16)|(lpEntries[i].peGreen<<8)|lpEntries[i].peRed;
-#else
-        This->data[i] = (lpEntries[i].peRed<<16)|(lpEntries[i].peGreen<<8)|(lpEntries[i].peBlue);
-#endif
+        This->data_bgr[i] = (lpEntries[i].peBlue<<16)|(lpEntries[i].peGreen<<8)|lpEntries[i].peRed;
+        This->data_rgb[i] = (lpEntries[i].peRed<<16)|(lpEntries[i].peGreen<<8)|(lpEntries[i].peBlue);
     }
 
     return DD_OK;

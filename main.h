@@ -38,8 +38,20 @@ typedef struct IDirectDrawImpl
     DWORD bpp;
     DWORD freq;
     BOOL windowed;
-    CRITICAL_SECTION cs;
-    HANDLE ev;
+
+    struct render
+    {
+        LPTHREAD_START_ROUTINE (*main)(void *);
+        HRESULT WINAPI (*Initialize)(void);
+        HRESULT WINAPI (*SetDisplayMode)(DWORD width, DWORD height);
+        HRESULT WINAPI (*RestoreDisplayMode)(void);
+
+        HANDLE thread;
+        BOOL run;
+        HANDLE ev;
+
+        /* rest is private */
+    } *render;
 
     HWND hWnd;
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);
@@ -50,10 +62,6 @@ typedef struct IDirectDrawImpl
 
     BOOL key_ctrl;
     BOOL key_tab;
-
-    HMODULE real_dll;
-    LPDIRECTDRAW real_ddraw;
-    HRESULT WINAPI (*real_DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
 } IDirectDrawImpl;
 
 typedef struct IDirectDrawImplVtbl IDirectDrawImplVtbl;

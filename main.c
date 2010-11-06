@@ -30,6 +30,9 @@ void mouse_unlock();
 
 IDirectDrawImpl *ddraw = NULL;
 
+extern struct render render_ddraw;
+extern struct render render_opengl;
+
 HRESULT __stdcall ddraw_Compact(IDirectDrawImpl *This)
 {
     printf("DirectDraw::Compact(This=%p)\n", This);
@@ -136,7 +139,7 @@ HRESULT __stdcall ddraw_Initialize(IDirectDrawImpl *This, GUID *a)
 HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 {
     printf("DirectDraw::RestoreDisplayMode(This=%p)\n", This);
-    return DD_OK;
+    return ddraw->render->RestoreDisplayMode();
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -232,29 +235,13 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
 
     This->hWnd = hWnd;
 
-#ifndef USE_OPENGL
     if(This->windowed)
     {
         This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
         SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
 
         mouse_init(hWnd);
-
-        if(IDirectDraw_SetCooperativeLevel(This->real_ddraw, hWnd, DDSCL_NORMAL) != DD_OK)
-        {
-            printf(" internal SetCooperativeLevel failed\n");
-            return DDERR_GENERIC;
-        }
     }
-    else
-    {
-        if(IDirectDraw_SetCooperativeLevel(This->real_ddraw, hWnd, dwFlags) != DD_OK)
-        {
-            printf(" internal SetCooperativeLevel failed\n");
-            return DDERR_GENERIC;
-        }
-    }
-#endif
 
     return DD_OK;
 }
@@ -298,17 +285,8 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
         AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
         SetWindowPos(This->hWnd, HWND_TOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
     }
-#ifndef USE_OPENGL
-    else
-    {
-        if(IDirectDraw_SetDisplayMode(This->real_ddraw, width, height, mode.dmBitsPerPel) != DD_OK)
-        {
-            printf(" error setting real display mode\n");
-            return DDERR_INVALIDMODE;
-        }
-    }
-#endif
-    return DD_OK;
+
+    return ddraw->render->SetDisplayMode(width, height);
 }
 
 HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HANDLE b)
@@ -316,7 +294,7 @@ HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HAN
 #if _DEBUG
     printf("DirectDraw::WaitForVerticalBlank(This=%p, ...)\n", This);
 #endif
-    WaitForSingleObject(ddraw->ev, INFINITE);
+    WaitForSingleObject(ddraw->render->ev, INFINITE);
     return DD_OK;
 }
 
@@ -343,9 +321,6 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 
     if(This->Ref == 0)
     {
-#ifndef USE_OPENGL
-        IDirectDraw_Release(This->real_ddraw);
-#endif
         free(This);
         ddraw = NULL;
         return 0;
@@ -410,20 +385,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     ddraw = This;
 
     This->windowed = TRUE;
-
-#ifndef USE_OPENGL
-    This->real_dll = LoadLibrary("system32\\ddraw.dll");
-    if(!This->real_dll)
-    {
-        return DDERR_UNSUPPORTED;
-    }
-
-    This->real_DirectDrawCreate = (HRESULT WINAPI (*)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*))GetProcAddress(This->real_dll, "DirectDrawCreate");
-    if(This->real_DirectDrawCreate(NULL, &This->real_ddraw, NULL) != DD_OK)
-    {
-        return DDERR_UNSUPPORTED;
-    }
-#endif
+    This->render = &render_ddraw;
+    This->render->Initialize();
 
     This->Ref = 0;
     ddraw_AddRef(This);

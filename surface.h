@@ -39,23 +39,11 @@ typedef struct IDirectDrawSurfaceImpl
     DWORD bpp;
     DWORD caps;
 
-    IDirectDrawImpl *parent;
     IDirectDrawPaletteImpl *palette;
 
     void *surface;
     DWORD lPitch;
     DWORD lXPitch;
-
-    HWND hWnd;
-    HANDLE dThread;
-    BOOL dRun;
-    HANDLE flipEvent;
-
-#if USE_OPENGL
-    HDC hDC;
-    HGLRC hRC;
-    int *glTex;
-#endif
 
 } IDirectDrawSurfaceImpl;
 
