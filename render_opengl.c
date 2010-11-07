@@ -137,6 +137,8 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
 
     while(render_opengl.run)
     {
+        ResetEvent(render_opengl.ev);
+
         if(render_opengl.maxfps > 0)
         {
             tick_start = GetTickCount();
