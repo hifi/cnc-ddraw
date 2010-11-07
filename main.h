@@ -52,6 +52,7 @@ typedef struct IDirectDrawImpl
         int maxfps;
         int width;
         int height;
+        int bpp;
         int filter;
 
         HANDLE thread;

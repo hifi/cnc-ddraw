@@ -30,6 +30,7 @@ struct render_ddraw_impl
     int maxfps;
     int width;
     int height;
+    int bpp;
     int filter;
 
     HANDLE thread;
@@ -51,6 +52,7 @@ struct render_ddraw_impl render_ddraw =
     render_ddraw_SetDisplayMode,
     render_ddraw_RestoreDisplayMode,
 
+    0,
     0,
     0,
     0,

@@ -30,6 +30,7 @@ struct render_opengl_impl
     int maxfps;
     int width;
     int height;
+    int bpp;
     int filter;
 
     HANDLE thread;
@@ -49,6 +50,7 @@ struct render_opengl_impl render_opengl =
     render_opengl_SetDisplayMode,
     render_opengl_RestoreDisplayMode,
 
+    0,
     0,
     0,
     0,
@@ -83,15 +85,18 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
 
     hDC = GetDC(ddraw->hWnd);
 
-    int *glTex = malloc(surface->width * surface->height * sizeof(int));
+    int tex_width = 1024;
+    int tex_height = 1024;
+    float scale_w = (float)surface->width/tex_width;
+    float scale_h = (float)surface->height/tex_height;
+    int *tex = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, tex_width * tex_height * sizeof(int));
 
     memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
     pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
     pfd.nVersion = 1;
     pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
     pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = 24;
-    pfd.cDepthBits = 16;
+    pfd.cColorBits = render_opengl.bpp;
     pfd.iLayerType = PFD_MAIN_PLANE;
     SetPixelFormat( hDC, ChoosePixelFormat( hDC, &pfd ), &pfd );
 
@@ -114,6 +119,22 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
 
     render_opengl.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
 
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
+    glViewport(0, 0, render_opengl.width, render_opengl.height);
+
+    if(render_opengl.filter)
+    {
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    }
+    else
+    {
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    }
+
+    glEnable(GL_TEXTURE_2D);
+
     while(render_opengl.run)
     {
         if(render_opengl.maxfps > 0)
@@ -126,32 +147,17 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
         {
             for(j=0; j<surface->width; j++)
             {
-                glTex[i*surface->width+j] = surface->palette->data_bgr[((unsigned char *)surface->surface)[i*surface->lPitch + j*surface->lXPitch]];
+                tex[i*surface->width+j] = surface->palette->data_bgr[((unsigned char *)surface->surface)[i*surface->lPitch + j*surface->lXPitch]];
             }
         }
 
-        glViewport(0, 0, render_opengl.width, render_opengl.height);
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, surface->width, surface->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, glTex);
-
-        if(render_opengl.filter)
-        {
-            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-        }
-        else
-        {
-            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-        }
-
-        glEnable(GL_TEXTURE_2D);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, surface->width, surface->height, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
         glBegin(GL_TRIANGLE_FAN);
-        glTexCoord2f(0,0); glVertex2f(-1,  1);
-        glTexCoord2f(1,0); glVertex2f( 1,  1);
-        glTexCoord2f(1,1); glVertex2f( 1, -1);	
-        glTexCoord2f(0,1); glVertex2f(-1, -1);
+        glTexCoord2f(0,0);              glVertex2f(-1,  1);
+        glTexCoord2f(scale_w,0);        glVertex2f( 1,  1);
+        glTexCoord2f(scale_w,scale_h);  glVertex2f( 1, -1);	
+        glTexCoord2f(0,scale_h);        glVertex2f(-1, -1);
         glEnd();
 
         SwapBuffers(hDC);
@@ -171,7 +177,7 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
 
     CloseHandle(render_opengl.ev);
 
-    free(glTex);
+    free(tex);
 
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(hRC);
