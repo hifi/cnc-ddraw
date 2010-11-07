@@ -65,10 +65,11 @@ typedef struct IDirectDrawImpl
     HWND hWnd;
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);
     POINT winpos;
-    POINT cursor;
+    struct { float x; float y; } cursor;
     POINT center;
     RECT cursorclip;
     BOOL locked;
+    BOOL adjmouse;
 
     BOOL key_ctrl;
     BOOL key_tab;

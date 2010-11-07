@@ -210,8 +210,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 if(LOWORD(lParam) != ddraw->render->width / 2 || HIWORD(lParam) != ddraw->render->height / 2)
                 {
-                    ddraw->cursor.x += LOWORD(lParam) - ddraw->render->width / 2;
-                    ddraw->cursor.y += HIWORD(lParam) - ddraw->render->height / 2;
+                    if(ddraw->adjmouse)
+                    {
+                        ddraw->cursor.x += (LOWORD(lParam) - ddraw->render->width / 2) * ((float)ddraw->width / ddraw->render->width);
+                        ddraw->cursor.y += (HIWORD(lParam) - ddraw->render->height / 2) * ((float)ddraw->height / ddraw->render->height);
+                    }
+                    else
+                    {
+                        ddraw->cursor.x += LOWORD(lParam) - ddraw->render->width / 2;
+                        ddraw->cursor.y += HIWORD(lParam) - ddraw->render->height / 2;
+                    }
 
                     if(ddraw->cursor.x < 0) ddraw->cursor.x = 0;
                     if(ddraw->cursor.y < 0) ddraw->cursor.y = 0;
@@ -508,6 +516,15 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     else
     {
         This->render->filter = 0;
+    }
+    GetPrivateProfileStringA("ddraw", "adjmouse", "TRUE", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    {
+        This->adjmouse = TRUE;
+    }
+    else
+    {
+        This->adjmouse = FALSE;
     }
 
     This->render->Initialize();

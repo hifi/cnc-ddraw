@@ -73,8 +73,8 @@ struct game games[] =
 
 BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
 {
-    lpPoint->x = ddraw->cursor.x;
-    lpPoint->y = ddraw->cursor.y;
+    lpPoint->x = (int)ddraw->cursor.x;
+    lpPoint->y = (int)ddraw->cursor.y;
     return TRUE;
 }
 
