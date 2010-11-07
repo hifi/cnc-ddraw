@@ -470,14 +470,14 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     GetCurrentDirectoryA(sizeof(cwd), cwd);
     snprintf(ini_path, sizeof(ini_path), "%s\\ddraw.ini", cwd);
 
-    GetPrivateProfileStringA("ddraw", "renderer", "ddraw", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'o')
+    GetPrivateProfileStringA("ddraw", "renderer", "opengl", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'd')
     {
-        This->render = &render_opengl;
+        This->render = &render_ddraw;
     }
     else
     {
-        This->render = &render_ddraw;
+        This->render = &render_opengl;
     }
 
     GetPrivateProfileStringA("ddraw", "windowed", "TRUE", tmp, sizeof(tmp), ini_path);
