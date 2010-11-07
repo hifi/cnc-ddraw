@@ -149,53 +149,77 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         case WM_NCACTIVATE:
             /* game's drawing loop stops when it inactivates, so don't */
-            DefWindowProc(hWnd, uMsg, wParam, lParam);
-            if(wParam == FALSE)
+            if(ddraw->windowed)
             {
-                mouse_unlock();
+                DefWindowProc(hWnd, uMsg, wParam, lParam);
+                if(wParam == FALSE)
+                {
+                    mouse_unlock();
+                }
+                else
+                {
+                    mouse_lock();
+                }
+                SetCursor(LoadCursor((HINSTANCE)GetWindowLong(ddraw->hWnd, GWL_HINSTANCE), IDC_ARROW));
+                return 0;
             }
-            else
-            {
-                mouse_lock();
-            }
-            SetCursor(LoadCursor((HINSTANCE)GetWindowLong(ddraw->hWnd, GWL_HINSTANCE), IDC_ARROW));
-            return 0;
+            break;
         case WM_KEYDOWN:
-            if(wParam == VK_CONTROL)
+            if(ddraw->windowed)
             {
-                ddraw->key_ctrl = TRUE;
-            }
-            if(wParam == VK_TAB)
-            {
-                ddraw->key_tab = TRUE;
-            }
-            if(ddraw->key_tab && ddraw->key_ctrl)
-            {
-                mouse_unlock();
+                if(wParam == VK_CONTROL)
+                {
+                    ddraw->key_ctrl = TRUE;
+                }
+                if(wParam == VK_TAB)
+                {
+                    ddraw->key_tab = TRUE;
+                }
+                if(ddraw->key_tab && ddraw->key_ctrl)
+                {
+                    mouse_unlock();
+                }
             }
             break;
         case WM_KEYUP:
-            if(wParam == VK_CONTROL)
+            if(ddraw->windowed)
             {
-                ddraw->key_ctrl = FALSE;
-            }
-            if(wParam == VK_TAB)
-            {
-                ddraw->key_tab = FALSE;
+                if(wParam == VK_CONTROL)
+                {
+                    ddraw->key_ctrl = FALSE;
+                }
+                if(wParam == VK_TAB)
+                {
+                    ddraw->key_tab = FALSE;
+                }
             }
             break;
         case WM_LBUTTONDOWN:
-            if(!ddraw->locked)
+        case WM_RBUTTONDOWN:
+        case WM_LBUTTONUP:
+        case WM_RBUTTONUP:
+            if(!ddraw->locked && ddraw->windowed)
             {
                 mouse_lock();
                 return 0;
             }
+            lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
             break;
         case WM_MOUSEMOVE:
             if(ddraw->locked)
             {
-                ddraw->cursor.x = LOWORD(lParam);
-                ddraw->cursor.y = HIWORD(lParam);
+                if(LOWORD(lParam) != ddraw->render->width / 2 || HIWORD(lParam) != ddraw->render->height / 2)
+                {
+                    ddraw->cursor.x += LOWORD(lParam) - ddraw->render->width / 2;
+                    ddraw->cursor.y += HIWORD(lParam) - ddraw->render->height / 2;
+
+                    if(ddraw->cursor.x < 0) ddraw->cursor.x = 0;
+                    if(ddraw->cursor.y < 0) ddraw->cursor.y = 0;
+                    if(ddraw->cursor.x > ddraw->width) ddraw->cursor.x = ddraw->width;
+                    if(ddraw->cursor.y > ddraw->height) ddraw->cursor.y = ddraw->height;
+
+                    SetCursorPos(ddraw->center.x, ddraw->center.y);
+                }
             }
             break;
         case WM_MOVE:
@@ -218,6 +242,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             ClientToScreen(ddraw->hWnd, &pt);
             ClientToScreen(ddraw->hWnd, &pt2);
             SetRect(&ddraw->cursorclip, pt.x, pt.y, pt2.x, pt2.y);
+
+            ddraw->center.x = ddraw->cursorclip.left + ( (ddraw->cursorclip.right - ddraw->cursorclip.left) / 2);
+            ddraw->center.y = ddraw->cursorclip.top + ( (ddraw->cursorclip.bottom - ddraw->cursorclip.top) / 2);
+
+            /* our own SendMessage only triggers this */
+            if(lParam == 0)
+            {
+                return 0;
+            }
+
             break;
     }
 
@@ -236,13 +270,10 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
 
     This->hWnd = hWnd;
 
-    if(This->windowed)
-    {
-        This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
-        SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
+    mouse_init(hWnd);
 
-        mouse_init(hWnd);
-    }
+    This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
+    SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
 
     return DD_OK;
 }
@@ -282,10 +313,14 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
         This->render->height = This->height;
     }
 
+    mouse_unlock();
+    if(!This->windowed)
+    {
+        mouse_lock();
+    }
+
     if(This->windowed)
     {
-        mouse_unlock();
-
         SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER);
 
         /* center the window with correct dimensions */
@@ -294,6 +329,11 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
         RECT dst = { x, y, This->render->width+x, This->render->height+y };
         AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
         SetWindowPos(This->hWnd, HWND_TOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
+    }
+    else
+    {
+        SetWindowPos(This->hWnd, HWND_TOPMOST, 0, 0, This->render->width, This->render->height, SWP_SHOWWINDOW);
+        SendMessage(This->hWnd, WM_WINDOWPOSCHANGED, 0, 0);
     }
 
     return ddraw->render->SetDisplayMode(width, height);

@@ -66,6 +66,7 @@ typedef struct IDirectDrawImpl
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);
     POINT winpos;
     POINT cursor;
+    POINT center;
     RECT cursorclip;
     BOOL locked;
 
