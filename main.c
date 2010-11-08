@@ -223,8 +223,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                     if(ddraw->cursor.x < 0) ddraw->cursor.x = 0;
                     if(ddraw->cursor.y < 0) ddraw->cursor.y = 0;
-                    if(ddraw->cursor.x > ddraw->width) ddraw->cursor.x = ddraw->width;
-                    if(ddraw->cursor.y > ddraw->height) ddraw->cursor.y = ddraw->height;
+                    if(ddraw->cursor.x > ddraw->width-1) ddraw->cursor.x = ddraw->width-1;
+                    if(ddraw->cursor.y > ddraw->height-1) ddraw->cursor.y = ddraw->height-1;
 
                     SetCursorPos(ddraw->center.x, ddraw->center.y);
                 }
