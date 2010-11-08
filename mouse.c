@@ -99,7 +99,8 @@ void mouse_unlock()
 
     if(ddraw->locked)
     {
-        ShowCursor(TRUE);
+        while(ShowCursor(TRUE) < 0);
+        SetCursor(LoadCursor(NULL, IDC_ARROW));
     }
 
     ddraw->locked = FALSE;
@@ -116,6 +117,8 @@ void mouse_init(HWND hWnd)
     int i;
 
     unsigned char buf[7];
+
+    SetCursor(LoadCursor(NULL, IDC_ARROW));
 
     GetWindowThreadProcessId(hWnd, &tmp);
     hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, tmp);
