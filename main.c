@@ -370,6 +370,8 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 
     if(This->Ref == 0)
     {
+        /* restore old wndproc, subsequent ddraw creation will otherwise fail */
+        SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)This->WndProc);
         //free(This);
         ddraw = NULL;
         return 0;
