@@ -85,6 +85,7 @@ void mouse_lock()
     if(mouse_active && !ddraw->locked)
     {
         ddraw->locked = TRUE;
+        SetCursorPos(ddraw->center.x, ddraw->center.y);
         ClipCursor(&ddraw->cursorclip);
         while(ShowCursor(FALSE) > 0);
     }
