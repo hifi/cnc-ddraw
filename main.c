@@ -149,56 +149,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         case WM_NCACTIVATE:
             /* game's drawing loop stops when it inactivates, so don't */
-            if(ddraw->windowed)
+            DefWindowProc(hWnd, uMsg, wParam, lParam);
+
+            if(wParam == FALSE)
             {
-                DefWindowProc(hWnd, uMsg, wParam, lParam);
-                if(wParam == FALSE)
-                {
-                    mouse_unlock();
-                }
-                else
-                {
-                    mouse_lock();
-                }
-                SetCursor(LoadCursor((HINSTANCE)GetWindowLong(ddraw->hWnd, GWL_HINSTANCE), IDC_ARROW));
-                return 0;
+                mouse_unlock();
             }
-            break;
-        case WM_KEYDOWN:
-            if(ddraw->windowed)
+            else
             {
-                if(wParam == VK_CONTROL)
-                {
-                    ddraw->key_ctrl = TRUE;
-                }
-                if(wParam == VK_TAB)
-                {
-                    ddraw->key_tab = TRUE;
-                }
-                if(ddraw->key_tab && ddraw->key_ctrl)
-                {
-                    mouse_unlock();
-                }
+                mouse_lock();
+            }
+
+            return 0;
+        case WM_KEYDOWN:
+            if(wParam == VK_CONTROL)
+            {
+                ddraw->key_ctrl = TRUE;
+            }
+            if(wParam == VK_TAB)
+            {
+                ddraw->key_tab = TRUE;
+            }
+            if(ddraw->key_tab && ddraw->key_ctrl)
+            {
+                mouse_unlock();
             }
             break;
         case WM_KEYUP:
-            if(ddraw->windowed)
+            if(wParam == VK_CONTROL)
             {
-                if(wParam == VK_CONTROL)
-                {
-                    ddraw->key_ctrl = FALSE;
-                }
-                if(wParam == VK_TAB)
-                {
-                    ddraw->key_tab = FALSE;
-                }
+                ddraw->key_ctrl = FALSE;
+            }
+            if(wParam == VK_TAB)
+            {
+                ddraw->key_tab = FALSE;
             }
             break;
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
-            if(!ddraw->locked && ddraw->windowed)
+            if(!ddraw->locked)
             {
                 mouse_lock();
                 return 0;
