@@ -145,11 +145,14 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
         }
 
         /* convert ddraw surface to opengl texture */
-        for(i=0; i<surface->height; i++)
+        if(surface->palette)
         {
-            for(j=0; j<surface->width; j++)
+            for(i=0; i<surface->height; i++)
             {
-                tex[i*surface->width+j] = surface->palette->data_bgr[((unsigned char *)surface->surface)[i*surface->lPitch + j*surface->lXPitch]];
+                for(j=0; j<surface->width; j++)
+                {
+                    tex[i*surface->width+j] = surface->palette->data_bgr[((unsigned char *)surface->surface)[i*surface->lPitch + j*surface->lXPitch]];
+                }
             }
         }
 
