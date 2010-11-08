@@ -69,6 +69,7 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
 HRESULT __stdcall ddraw_surface_AddAttachedSurface(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWSURFACE lpDDSurface)
 {
     printf("DirectDrawSurface::AddAttachedSurface(This=%p, lpDDSurface=%p)\n", This, lpDDSurface);
+    IDirectDrawSurface_AddRef(lpDDSurface);
     return DD_OK;
 }
 
@@ -141,9 +142,10 @@ HRESULT __stdcall ddraw_surface_BltFast(IDirectDrawSurfaceImpl *This, DWORD a, D
     return DD_OK;
 }
 
-HRESULT __stdcall ddraw_surface_DeleteAttachedSurface(IDirectDrawSurfaceImpl *This, DWORD a, LPDIRECTDRAWSURFACE b)
+HRESULT __stdcall ddraw_surface_DeleteAttachedSurface(IDirectDrawSurfaceImpl *This, DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSurface)
 {
-    printf("IDirectDrawSurface::DeleteAttachedSurface(This=%p, ...)\n", This);
+    printf("IDirectDrawSurface::DeleteAttachedSurface(This=%p, dwFlags=%d, lpDDSurface=%p)\n", This, (int)dwFlags, lpDDSurface);
+    IDirectDrawSurface_Release(lpDDSurface);
     return DD_OK;
 }
 
@@ -314,7 +316,16 @@ HRESULT __stdcall ddraw_surface_SetOverlayPosition(IDirectDrawSurfaceImpl *This,
 HRESULT __stdcall ddraw_surface_SetPalette(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWPALETTE lpDDPalette)
 {
     printf("DirectDrawSurface::SetPalette(This=%p, lpDDPalette=%p)\n", This, lpDDPalette);
+
+    IDirectDrawPalette_AddRef(lpDDPalette);
+
+    if(This->palette)
+    {
+        IDirectDrawPalette_Release(This->palette);
+    }
+
     This->palette = (IDirectDrawPaletteImpl *)lpDDPalette;
+
     return DD_OK;
 }
 
