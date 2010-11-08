@@ -72,6 +72,11 @@ HRESULT WINAPI render_opengl_SetDisplayMode(DWORD width, DWORD height)
 {
     DEVMODE mode;
 
+    if(ddraw->windowed)
+    {
+        return DD_OK;
+    }
+
     EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &render_opengl.restore);
 
     memset(&mode, 0, sizeof(DEVMODE));
@@ -86,8 +91,11 @@ HRESULT WINAPI render_opengl_SetDisplayMode(DWORD width, DWORD height)
 
 HRESULT WINAPI render_opengl_RestoreDisplayMode(void)
 {
-    render_opengl.restore.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFLAGS|DM_DISPLAYFREQUENCY|DM_POSITION;
-    ChangeDisplaySettings(&render_opengl.restore, 0);
+    if(!ddraw->windowed)
+    {
+        render_opengl.restore.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFLAGS|DM_DISPLAYFREQUENCY|DM_POSITION;
+        ChangeDisplaySettings(&render_opengl.restore, 0);
+    }
     return DD_OK;
 }
 
