@@ -379,7 +379,7 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 
     if(This->Ref == 0)
     {
-        free(This);
+        //free(This);
         ddraw = NULL;
         return 0;
     }

@@ -53,13 +53,12 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
         }
         if(This->surface)
         {
-            //free(This->surface);
+            free(This->surface);
         }
         if(This->palette)
         {
             IDirectDrawPalette_Release(This->palette);
         }
-        /* FIXME: crashing on 64bit windows, investigate! */
         //free(This);
         return 0;
     }
