@@ -36,6 +36,8 @@ struct render_opengl_impl
     HANDLE thread;
     BOOL run;
     HANDLE ev;
+
+    DEVMODE restore;
 };
 
 DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface);
@@ -68,11 +70,24 @@ HRESULT WINAPI render_opengl_Initialize()
 
 HRESULT WINAPI render_opengl_SetDisplayMode(DWORD width, DWORD height)
 {
-    return DD_OK;
+    DEVMODE mode;
+
+    EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &render_opengl.restore);
+
+    memset(&mode, 0, sizeof(DEVMODE));
+    mode.dmSize = sizeof(DEVMODE);
+    mode.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
+    mode.dmPelsWidth = render_opengl.width;
+    mode.dmPelsHeight = render_opengl.height;
+    mode.dmBitsPerPel = render_opengl.bpp;
+
+    return ChangeDisplaySettings(&mode, CDS_FULLSCREEN) == DISP_CHANGE_SUCCESSFUL ? DD_OK : DDERR_INVALIDMODE;
 }
 
 HRESULT WINAPI render_opengl_RestoreDisplayMode(void)
 {
+    render_opengl.restore.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFLAGS|DM_DISPLAYFREQUENCY|DM_POSITION;
+    ChangeDisplaySettings(&render_opengl.restore, 0);
     return DD_OK;
 }
 
