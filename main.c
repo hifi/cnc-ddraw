@@ -498,7 +498,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     This->render->bpp = GetPrivateProfileIntA("ddraw", "bpp", 32, ini_path);
     if(This->render->bpp != 16 && This->render->bpp != 24 && This->render->bpp != 32)
     {
-        This->render->bpp = 32;
+        This->render->bpp = 0;
     }
 
     GetPrivateProfileStringA("ddraw", "filter", tmp, tmp, sizeof(tmp), ini_path);

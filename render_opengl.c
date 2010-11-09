@@ -72,19 +72,23 @@ HRESULT WINAPI render_opengl_SetDisplayMode(DWORD width, DWORD height)
 {
     DEVMODE mode;
 
+    EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &render_opengl.restore);
+
     if(ddraw->windowed)
     {
         return DD_OK;
     }
 
-    EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &render_opengl.restore);
-
     memset(&mode, 0, sizeof(DEVMODE));
     mode.dmSize = sizeof(DEVMODE);
-    mode.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
+    mode.dmFields = DM_PELSWIDTH|DM_PELSHEIGHT;
     mode.dmPelsWidth = render_opengl.width;
     mode.dmPelsHeight = render_opengl.height;
-    mode.dmBitsPerPel = render_opengl.bpp;
+    if(render_opengl.bpp)
+    {
+        mode.dmFields |= DM_BITSPERPEL;
+        mode.dmBitsPerPel = render_opengl.bpp;
+    }
 
     return ChangeDisplaySettings(&mode, CDS_FULLSCREEN) == DISP_CHANGE_SUCCESSFUL ? DD_OK : DDERR_INVALIDMODE;
 }
@@ -119,7 +123,7 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
     pfd.nVersion = 1;
     pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
     pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = render_opengl.bpp;
+    pfd.cColorBits = render_opengl.bpp ? render_opengl.bpp : render_opengl.restore.dmBitsPerPel;
     pfd.iLayerType = PFD_MAIN_PLANE;
     SetPixelFormat( hDC, ChoosePixelFormat( hDC, &pfd ), &pfd );
 
