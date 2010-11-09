@@ -483,7 +483,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         This->windowed = TRUE;
     }
 
-    This->render->maxfps = GetPrivateProfileIntA("ddraw", "maxfps", -1, ini_path);
+    This->render->maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 120, ini_path);
     This->render->width = GetPrivateProfileIntA("ddraw", "width", 640, ini_path);
     if(This->render->width < 640)
     {
