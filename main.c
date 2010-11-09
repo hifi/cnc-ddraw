@@ -463,6 +463,26 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     GetCurrentDirectoryA(sizeof(cwd), cwd);
     snprintf(ini_path, sizeof(ini_path), "%s\\ddraw.ini", cwd);
 
+    if(GetFileAttributes(ini_path) == 0xFFFFFFFF)
+    {
+        FILE *fh = fopen(ini_path, "w");
+        fputs(
+            "[ddraw]\n"
+            "width=640\n"
+            "height=400\n"
+            "; bits per pixel, possible values: 16, 24 and 32, 0 = auto\n"
+            "bpp=0\n"
+            "windowed=true\n"
+            "; real rendering rate, -1 = vsync, 0 = unlimited, n = cap\n"
+            "maxfps=120\n"
+            "; scaling filter, nearest = sharp, linear = smooth\n"
+            "filter=nearest\n"
+            "; mouse sensitivity scaling\n"
+            "adjmouse=false\n"
+        , fh);
+        fclose(fh);
+    }
+
     GetPrivateProfileStringA("ddraw", "renderer", "opengl", tmp, sizeof(tmp), ini_path);
     if(tolower(tmp[0]) == 'd')
     {
