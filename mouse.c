@@ -21,54 +21,15 @@
 #include "main.h"
 #include "surface.h"
 
-#define MAX_NOPS 16
+#define MAX_HOOKS 16
 
-struct game
-{
-    DWORD check;            /* memory address of one GetCursorPos call (for game identifying, 2E FF 15) */
-    DWORD hook;             /* memory address where the GetCursorPos call pointer is */
-    DWORD nops[MAX_NOPS];   /* points where a 1+7 byte import call is NOP'd (ClipCursor, ShowCursor), first byte is a PUSH that has to be removed */
-};
+BOOL mouse_active = FALSE;
 
-struct game games[] =
+struct hook { char name[32]; void *func; };
+struct hack
 {
-    /* Command & Conquer */
-    {
-        0x004C894A, /* address should contain 2E FF 15 */
-        0x005B0184, /* GetCursorPos thunk addr */
-        {
-            0x004C88CC, /* ClipCursor */
-            0x004C88E0, /* ClipCursor */
-            0x0041114F, /* ShowCursor */
-            0x00411198, /* ShowCursor */
-            0x00454490, /* ShowCursor */
-            0x004CCE62, /* SetCursor */
-            0x00000000
-        },
-    },
-    /* Red Alert */
-    {
-        0x005B39C0,
-        0x005E6848,
-        {
-            0x005C194D, /* ClipCursor */
-            0x005C196D, /* ClipCursor */
-            0x004F83A0, /* ShowCursor */
-            0x005B3A26, /* ShowCursor */
-            0x005B3A73, /* ShowCursor */
-            0x005A02CD, /* SetCursor */
-            0x005A030A, /* SetCursor */
-            0x005A0324, /* SetCursor */
-            0x00000000
-        },
-    },
-    {
-        0x00000000,
-        0x00000000,
-        {
-            0x00000000
-        },
-    },
+    char name[32];
+    struct hook hooks[MAX_HOOKS];
 };
 
 BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
@@ -78,7 +39,102 @@ BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
     return TRUE;
 }
 
-BOOL mouse_active = FALSE;
+BOOL WINAPI fake_ClipCursor(const RECT *lpRect)
+{
+    return TRUE;
+}
+
+int WINAPI fake_ShowCursor(BOOL bShow)
+{
+    return TRUE;
+}
+
+HCURSOR WINAPI fake_SetCursor(HCURSOR hCursor)
+{
+    return NULL;
+}
+
+struct hack hacks[] =
+{
+    {
+        "user32.dll",
+        {
+            { "GetCursorPos", fake_GetCursorPos },
+            { "ClipCursor", fake_ClipCursor },
+            { "ShowCursor", fake_ShowCursor },
+            { "SetCursor", fake_SetCursor } ,
+            { "", NULL }
+        }
+    },
+    {
+        "",
+        {
+            { "", NULL }
+        }
+    }
+};
+
+void hack_iat(struct hack *hck)
+{
+    int i;
+    char buf[32];
+    struct hook *hk;
+    DWORD tmp;
+    HANDLE hProcess;
+    DWORD dwWritten;
+    IMAGE_DOS_HEADER dos_hdr;
+    IMAGE_NT_HEADERS nt_hdr;
+    IMAGE_IMPORT_DESCRIPTOR *dir;
+    IMAGE_THUNK_DATA thunk;
+    PDWORD ptmp;
+
+    GetWindowThreadProcessId(ddraw->hWnd, &tmp);
+
+    HMODULE base = GetModuleHandle(NULL);
+    hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, tmp);
+
+    ReadProcessMemory(hProcess, (void *)base, &dos_hdr, sizeof(IMAGE_DOS_HEADER), &dwWritten);
+    ReadProcessMemory(hProcess, (void *)base+dos_hdr.e_lfanew, &nt_hdr, sizeof(IMAGE_NT_HEADERS), &dwWritten);
+    dir = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (nt_hdr.OptionalHeader.DataDirectory[1].Size));
+    ReadProcessMemory(hProcess, (void *)base+nt_hdr.OptionalHeader.DataDirectory[1].VirtualAddress, dir, nt_hdr.OptionalHeader.DataDirectory[1].Size, &dwWritten);
+
+    while(dir->Name > 0)
+    {
+        memset(buf, 0, 32);
+        ReadProcessMemory(hProcess, (void *)base+dir->Name, buf, 32, &dwWritten);
+        if(stricmp(buf, hck->name) == 0)
+        {
+            ptmp = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DWORD) * 64);
+            ReadProcessMemory(hProcess, (void *)base+dir->Characteristics, ptmp, sizeof(DWORD) * 64, &dwWritten);
+            i=0;
+            while(*ptmp)
+            {
+                memset(buf, 0, 32);
+                ReadProcessMemory(hProcess, (void *)base+(*ptmp)+2, buf, 32, &dwWritten);
+
+                hk = &hck->hooks[0];
+                while(hk->func)
+                {
+                    if(stricmp(hk->name, buf) == 0)
+                    {
+                        thunk.u1.Function = (DWORD)hk->func;
+                        thunk.u1.Ordinal = (DWORD)hk->func;
+                        thunk.u1.AddressOfData = (DWORD)hk->func;
+                        WriteProcessMemory(hProcess, (void *)base+dir->FirstThunk+(sizeof(IMAGE_THUNK_DATA) * i), &thunk, sizeof(IMAGE_THUNK_DATA), &dwWritten);
+                        mouse_active = TRUE;
+                    }
+                    hk++;
+                }
+
+                ptmp++;
+                i++;
+            }
+        }
+        dir++;
+    }
+
+    CloseHandle(hProcess);
+}
 
 void mouse_lock()
 {
@@ -112,44 +168,7 @@ void mouse_unlock()
 
 void mouse_init(HWND hWnd)
 {
-    DWORD tmp;
-    HANDLE hProcess;
-    DWORD dwWritten;
-    int i;
-
-    unsigned char buf[7];
-
     SetCursor(LoadCursor(NULL, IDC_ARROW));
-
-    GetWindowThreadProcessId(hWnd, &tmp);
-    hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, tmp);
-
-    tmp = (DWORD)fake_GetCursorPos;
-
-    struct game *ptr = &games[0];
-
-    while(ptr->check)
-    {
-        ReadProcessMemory(hProcess, (void *)ptr->check, buf, 3, &dwWritten);
-        if(buf[0] == 0x2E && buf[1] == 0xFF && buf[2] == 0x15)
-        {
-            WriteProcessMemory(hProcess, (void *)ptr->hook, &tmp, 4, &dwWritten);
-
-            memset(buf, 0x90, 7);   // NOP
-            buf[0] = 0x58;          // POP EAX
-            buf[1] = 0x33;          // XOR EAX,EAX
-            buf[2] = 0xC0;          // ^
-            for(i=0;i<MAX_NOPS;i++)
-            {
-                if(!ptr->nops[i])
-                    break;
-
-                WriteProcessMemory(hProcess, (void *)ptr->nops[i], buf, 7, &dwWritten);
-            }
-
-            mouse_active = TRUE;
-            return;
-        }
-        ptr++;
-    }
+    hack_iat(&hacks[0]);
+    mouse_active = TRUE;
 }
