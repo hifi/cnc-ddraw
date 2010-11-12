@@ -20,90 +20,7 @@
 #include "main.h"
 #include "surface.h"
 
-struct render_opengl_impl
-{
-    DWORD WINAPI (*main)(IDirectDrawSurfaceImpl *surface);
-    HRESULT WINAPI (*Initialize)(void);
-    HRESULT WINAPI (*SetDisplayMode)(DWORD width, DWORD height);
-    HRESULT WINAPI (*RestoreDisplayMode)(void);
-
-    int maxfps;
-    int width;
-    int height;
-    int bpp;
-    int filter;
-
-    HANDLE thread;
-    BOOL run;
-    HANDLE ev;
-
-    DEVMODE restore;
-};
-
-DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface);
-HRESULT WINAPI render_opengl_Initialize();
-HRESULT WINAPI render_opengl_SetDisplayMode(DWORD width, DWORD height);
-HRESULT WINAPI render_opengl_RestoreDisplayMode(void);
-
-struct render_opengl_impl render_opengl =
-{
-    render_opengl_main,
-    render_opengl_Initialize,
-    render_opengl_SetDisplayMode,
-    render_opengl_RestoreDisplayMode,
-
-    0,
-    0,
-    0,
-    0,
-    0,
-
-    NULL,
-    TRUE,
-    NULL
-};
-
-HRESULT WINAPI render_opengl_Initialize()
-{
-    return DD_OK;
-}
-
-HRESULT WINAPI render_opengl_SetDisplayMode(DWORD width, DWORD height)
-{
-    DEVMODE mode;
-
-    EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &render_opengl.restore);
-
-    if(ddraw->windowed)
-    {
-        return DD_OK;
-    }
-
-    memset(&mode, 0, sizeof(DEVMODE));
-    mode.dmSize = sizeof(DEVMODE);
-    mode.dmFields = DM_PELSWIDTH|DM_PELSHEIGHT;
-    mode.dmPelsWidth = render_opengl.width;
-    mode.dmPelsHeight = render_opengl.height;
-    if(render_opengl.bpp)
-    {
-        mode.dmFields |= DM_BITSPERPEL;
-        mode.dmBitsPerPel = render_opengl.bpp;
-    }
-
-    return ChangeDisplaySettings(&mode, CDS_FULLSCREEN) == DISP_CHANGE_SUCCESSFUL ? DD_OK : DDERR_INVALIDMODE;
-}
-
-HRESULT WINAPI render_opengl_RestoreDisplayMode(void)
-{
-    if(!ddraw->windowed)
-    {
-        render_opengl.restore.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFLAGS|DM_DISPLAYFREQUENCY|DM_POSITION;
-        ChangeDisplaySettings(&render_opengl.restore, 0);
-    }
-    return DD_OK;
-}
-
-DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
+DWORD WINAPI render_main(IDirectDrawSurfaceImpl *surface)
 {
     int i,j;
     PIXELFORMATDESCRIPTOR pfd;
@@ -123,7 +40,7 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
     pfd.nVersion = 1;
     pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
     pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = render_opengl.bpp ? render_opengl.bpp : render_opengl.restore.dmBitsPerPel;
+    pfd.cColorBits = ddraw->render.bpp ? ddraw->render.bpp : ddraw->mode.dmBitsPerPel;
     pfd.iLayerType = PFD_MAIN_PLANE;
     SetPixelFormat( hDC, ChoosePixelFormat( hDC, &pfd ), &pfd );
 
@@ -134,22 +51,22 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
     DWORD tick_end;
     DWORD frame_len;
 
-    if(render_opengl.maxfps < 0)
+    if(ddraw->render.maxfps < 0)
     {
-        render_opengl.maxfps = ddraw->freq;
+        ddraw->render.maxfps = ddraw->freq;
     }
 
-    if(render_opengl.maxfps > 0)
+    if(ddraw->render.maxfps > 0)
     {
-        frame_len = 1000.0f / render_opengl.maxfps;
+        frame_len = 1000.0f / ddraw->render.maxfps;
     }
 
-    render_opengl.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
+    ddraw->render.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
-    glViewport(0, 0, render_opengl.width, render_opengl.height);
+    glViewport(0, 0, ddraw->render.width, ddraw->render.height);
 
-    if(render_opengl.filter)
+    if(ddraw->render.filter)
     {
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
@@ -162,11 +79,11 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
 
     glEnable(GL_TEXTURE_2D);
 
-    while(render_opengl.run)
+    while(ddraw->render.run)
     {
-        ResetEvent(render_opengl.ev);
+        ResetEvent(ddraw->render.ev);
 
-        if(render_opengl.maxfps > 0)
+        if(ddraw->render.maxfps > 0)
         {
             tick_start = GetTickCount();
         }
@@ -194,7 +111,7 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
 
         SwapBuffers(hDC);
 
-        if(render_opengl.maxfps > 0)
+        if(ddraw->render.maxfps > 0)
         {
             tick_end = GetTickCount();
 
@@ -204,10 +121,10 @@ DWORD WINAPI render_opengl_main(IDirectDrawSurfaceImpl *surface)
             }
         }
 
-        SetEvent(render_opengl.ev);
+        SetEvent(ddraw->render.ev);
     }
 
-    CloseHandle(render_opengl.ev);
+    CloseHandle(ddraw->render.ev);
 
     free(tex);
 

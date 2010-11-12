@@ -20,6 +20,7 @@
 #include "main.h"
 #include "surface.h"
 
+DWORD WINAPI render_main(IDirectDrawSurfaceImpl *);
 IDirectDrawSurfaceImpl *ddraw_primary = NULL;
 
 void dump_ddscaps(DWORD dwCaps);
@@ -48,8 +49,8 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
     {
         if(This->caps == DDSCAPS_PRIMARYSURFACE)
         {
-            ddraw->render->run = FALSE;
-            WaitForSingleObject(ddraw->render->thread, INFINITE);
+            ddraw->render.run = FALSE;
+            WaitForSingleObject(ddraw->render.thread, INFINITE);
         }
         if(This->surface)
         {
@@ -96,7 +97,7 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
 
     if(This->caps & DDSCAPS_PRIMARYSURFACE)
     {
-        WaitForSingleObject(ddraw->render->ev, INFINITE);
+        WaitForSingleObject(ddraw->render.ev, INFINITE);
     }
 
     if(Source)
@@ -446,7 +447,8 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
     if(Surface->caps & DDSCAPS_PRIMARYSURFACE)
     {
-        This->render->thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)This->render->main, (void *)Surface, 0, NULL);
+        This->render.run = TRUE;
+        This->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)render_main, (void *)Surface, 0, NULL);
     }
 
     return DD_OK;

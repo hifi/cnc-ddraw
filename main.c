@@ -31,7 +31,6 @@ void mouse_unlock();
 
 IDirectDrawImpl *ddraw = NULL;
 
-extern struct render render_ddraw;
 extern struct render render_opengl;
 
 HRESULT __stdcall ddraw_Compact(IDirectDrawImpl *This)
@@ -140,7 +139,12 @@ HRESULT __stdcall ddraw_Initialize(IDirectDrawImpl *This, GUID *a)
 HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 {
     printf("DirectDraw::RestoreDisplayMode(This=%p)\n", This);
-    return ddraw->render->RestoreDisplayMode();
+    if(!ddraw->windowed)
+    {
+        This->mode.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFLAGS|DM_DISPLAYFREQUENCY|DM_POSITION;
+        ChangeDisplaySettings(&This->mode, 0);
+    }
+    return DD_OK;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -199,17 +203,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_MOUSEMOVE:
             if(ddraw->locked)
             {
-                if(LOWORD(lParam) != ddraw->render->width / 2 || HIWORD(lParam) != ddraw->render->height / 2)
+                if(LOWORD(lParam) != ddraw->render.width / 2 || HIWORD(lParam) != ddraw->render.height / 2)
                 {
                     if(ddraw->adjmouse)
                     {
-                        ddraw->cursor.x += (LOWORD(lParam) - ddraw->render->width / 2) * ((float)ddraw->width / ddraw->render->width);
-                        ddraw->cursor.y += (HIWORD(lParam) - ddraw->render->height / 2) * ((float)ddraw->height / ddraw->render->height);
+                        ddraw->cursor.x += (LOWORD(lParam) - ddraw->render.width / 2) * ((float)ddraw->width / ddraw->render.width);
+                        ddraw->cursor.y += (HIWORD(lParam) - ddraw->render.height / 2) * ((float)ddraw->height / ddraw->render.height);
                     }
                     else
                     {
-                        ddraw->cursor.x += LOWORD(lParam) - ddraw->render->width / 2;
-                        ddraw->cursor.y += HIWORD(lParam) - ddraw->render->height / 2;
+                        ddraw->cursor.x += LOWORD(lParam) - ddraw->render.width / 2;
+                        ddraw->cursor.y += HIWORD(lParam) - ddraw->render.height / 2;
                     }
 
                     if(ddraw->cursor.x < 0) ddraw->cursor.x = 0;
@@ -279,8 +283,6 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
 
 HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD height, DWORD bpp)
 {
-    DEVMODE mode;
-
     printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
 
     /* currently we only support 8 bit modes */
@@ -289,10 +291,10 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
         return DDERR_INVALIDMODE;
     }
 
-    mode.dmSize = sizeof(DEVMODE);
-    mode.dmDriverExtra = 0;
+    This->mode.dmSize = sizeof(DEVMODE);
+    This->mode.dmDriverExtra = 0;
 
-    if(EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &mode) == FALSE)
+    if(EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &This->mode) == FALSE)
     {
         /* not expected */
         return DDERR_UNSUPPORTED;
@@ -301,41 +303,51 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     This->width = width;
     This->height = height;
     This->bpp = bpp;
-    This->freq = mode.dmDisplayFrequency;
 
-    if(This->render->width < This->width)
+    if(This->render.width < This->width)
     {
-        This->render->width = This->width;
+        This->render.width = This->width;
     }
-    if(This->render->height < This->height)
+    if(This->render.height < This->height)
     {
-        This->render->height = This->height;
+        This->render.height = This->height;
     }
 
     mouse_unlock();
-    if(!This->windowed)
-    {
-        mouse_lock();
-    }
 
     if(This->windowed)
     {
         SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER);
 
         /* center the window with correct dimensions */
-        int x = (mode.dmPelsWidth / 2) - (This->render->width / 2);
-        int y = (mode.dmPelsHeight / 2) - (This->render->height / 2);
-        RECT dst = { x, y, This->render->width+x, This->render->height+y };
+        int x = (This->mode.dmPelsWidth / 2) - (This->render.width / 2);
+        int y = (This->mode.dmPelsHeight / 2) - (This->render.height / 2);
+        RECT dst = { x, y, This->render.width+x, This->render.height+y };
         AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
         SetWindowPos(This->hWnd, HWND_NOTOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
     }
     else
     {
-        SetWindowPos(This->hWnd, HWND_TOPMOST, 0, 0, This->render->width, This->render->height, SWP_SHOWWINDOW);
+        SetWindowPos(This->hWnd, HWND_TOPMOST, 0, 0, This->render.width, This->render.height, SWP_SHOWWINDOW);
         SendMessage(This->hWnd, WM_WINDOWPOSCHANGED, 0, 0);
+
+        mouse_lock();
+
+        memset(&This->render.mode, 0, sizeof(DEVMODE));
+        This->render.mode.dmSize = sizeof(DEVMODE);
+        This->render.mode.dmFields = DM_PELSWIDTH|DM_PELSHEIGHT;
+        This->render.mode.dmPelsWidth = This->render.width;
+        This->render.mode.dmPelsHeight = This->render.height;
+        if(This->render.bpp)
+        {
+            This->render.mode.dmFields |= DM_BITSPERPEL;
+            This->render.mode.dmBitsPerPel = This->render.bpp;
+        }
+
+        return ChangeDisplaySettings(&This->render.mode, CDS_FULLSCREEN) == DISP_CHANGE_SUCCESSFUL ? DD_OK : DDERR_INVALIDMODE;
     }
 
-    return ddraw->render->SetDisplayMode(width, height);
+    return DD_OK;
 }
 
 HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HANDLE b)
@@ -343,7 +355,7 @@ HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HAN
 #if _DEBUG
     printf("DirectDraw::WaitForVerticalBlank(This=%p, ...)\n", This);
 #endif
-    WaitForSingleObject(ddraw->render->ev, INFINITE);
+    WaitForSingleObject(This->render.ev, INFINITE);
     return DD_OK;
 }
 
@@ -483,16 +495,6 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         fclose(fh);
     }
 
-    GetPrivateProfileStringA("ddraw", "renderer", "opengl", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'd')
-    {
-        This->render = &render_ddraw;
-    }
-    else
-    {
-        This->render = &render_opengl;
-    }
-
     GetPrivateProfileStringA("ddraw", "windowed", "TRUE", tmp, sizeof(tmp), ini_path);
     if(tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tmp[0] == '0')
     {
@@ -503,32 +505,32 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         This->windowed = TRUE;
     }
 
-    This->render->maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 120, ini_path);
-    This->render->width = GetPrivateProfileIntA("ddraw", "width", 640, ini_path);
-    if(This->render->width < 640)
+    This->render.maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 120, ini_path);
+    This->render.width = GetPrivateProfileIntA("ddraw", "width", 640, ini_path);
+    if(This->render.width < 640)
     {
-        This->render->width = 640;
+        This->render.width = 640;
     }
 
-    This->render->height = GetPrivateProfileIntA("ddraw", "height", 400, ini_path);
-    if(This->render->height < 400)
+    This->render.height = GetPrivateProfileIntA("ddraw", "height", 400, ini_path);
+    if(This->render.height < 400)
     {
-        This->render->height = 400;
+        This->render.height = 400;
     }
-    This->render->bpp = GetPrivateProfileIntA("ddraw", "bpp", 32, ini_path);
-    if(This->render->bpp != 16 && This->render->bpp != 24 && This->render->bpp != 32)
+    This->render.bpp = GetPrivateProfileIntA("ddraw", "bpp", 32, ini_path);
+    if(This->render.bpp != 16 && This->render.bpp != 24 && This->render.bpp != 32)
     {
-        This->render->bpp = 0;
+        This->render.bpp = 0;
     }
 
     GetPrivateProfileStringA("ddraw", "filter", tmp, tmp, sizeof(tmp), ini_path);
     if(tolower(tmp[0]) == 'l' || tolower(tmp[3]) == 'l')
     {
-        This->render->filter = 1;
+        This->render.filter = 1;
     }
     else
     {
-        This->render->filter = 0;
+        This->render.filter = 0;
     }
     GetPrivateProfileStringA("ddraw", "adjmouse", "TRUE", tmp, sizeof(tmp), ini_path);
     if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
@@ -539,8 +541,6 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     {
         This->adjmouse = FALSE;
     }
-
-    This->render->Initialize();
 
     This->Ref = 0;
     ddraw_AddRef(This);

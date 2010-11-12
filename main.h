@@ -38,17 +38,13 @@ typedef struct IDirectDrawImpl
     DWORD bpp;
     DWORD freq;
     BOOL windowed;
+    DEVMODE mode;
 
     /* real export from system32\ddraw.dll */
     HRESULT WINAPI (*DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
 
-    struct render
+    struct
     {
-        LPTHREAD_START_ROUTINE (*main)(void *);
-        HRESULT WINAPI (*Initialize)(void);
-        HRESULT WINAPI (*SetDisplayMode)(DWORD width, DWORD height);
-        HRESULT WINAPI (*RestoreDisplayMode)(void);
-
         int maxfps;
         int width;
         int height;
@@ -58,9 +54,9 @@ typedef struct IDirectDrawImpl
         HANDLE thread;
         BOOL run;
         HANDLE ev;
+        DEVMODE mode;
 
-        /* rest is private */
-    } *render;
+    } render;
 
     HWND hWnd;
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);
