@@ -20,9 +20,6 @@
 #include "main.h"
 #include "surface.h"
 
-DWORD WINAPI render_main(IDirectDrawSurfaceImpl *);
-IDirectDrawSurfaceImpl *ddraw_primary = NULL;
-
 void dump_ddscaps(DWORD dwCaps);
 void dump_ddsd(DWORD dwFlags);
 
@@ -49,8 +46,16 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
     {
         if(This->caps == DDSCAPS_PRIMARYSURFACE)
         {
-            ddraw->render.run = FALSE;
-            WaitForSingleObject(ddraw->render.thread, INFINITE);
+            if(ddraw->render.run)
+            {
+                EnterCriticalSection(&ddraw->render.cs);
+                ddraw->primary = NULL;
+                LeaveCriticalSection(&ddraw->render.cs);
+            }
+            else
+            {
+                ddraw->primary = NULL;
+            }
         }
         if(This->surface)
         {
@@ -415,7 +420,7 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
     {
         if(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
         {
-            ddraw_primary = Surface;
+            ddraw->primary = Surface;
 
             Surface->width = This->width;
             Surface->height = This->height;
@@ -444,12 +449,6 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
     Surface->Ref = 0;
     ddraw_surface_AddRef(Surface);
-
-    if(Surface->caps & DDSCAPS_PRIMARYSURFACE)
-    {
-        This->render.run = TRUE;
-        This->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)render_main, (void *)Surface, 0, NULL);
-    }
 
     return DD_OK;
 }

@@ -24,6 +24,7 @@
 
 struct IDirectDrawImpl;
 struct IDirectDrawImplVtbl;
+struct IDirectDrawSurfaceImpl;
 
 extern struct IDirectDrawImpl *ddraw;
 
@@ -36,9 +37,10 @@ typedef struct IDirectDrawImpl
     DWORD width;
     DWORD height;
     DWORD bpp;
-    DWORD freq;
     BOOL windowed;
+    BOOL windowed_init;
     DEVMODE mode;
+    struct IDirectDrawSurfaceImpl *primary;
 
     /* real export from system32\ddraw.dll */
     HRESULT WINAPI (*DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
@@ -54,6 +56,7 @@ typedef struct IDirectDrawImpl
         HANDLE thread;
         BOOL run;
         HANDLE ev;
+        CRITICAL_SECTION cs;
         DEVMODE mode;
 
     } render;

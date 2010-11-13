@@ -31,7 +31,7 @@ void mouse_unlock();
 
 IDirectDrawImpl *ddraw = NULL;
 
-extern struct render render_opengl;
+DWORD WINAPI render_main(void);
 
 HRESULT __stdcall ddraw_Compact(IDirectDrawImpl *This)
 {
@@ -139,11 +139,107 @@ HRESULT __stdcall ddraw_Initialize(IDirectDrawImpl *This, GUID *a)
 HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 {
     printf("DirectDraw::RestoreDisplayMode(This=%p)\n", This);
+    if(!This->render.run)
+    {
+        return DD_OK;
+    }
+
     if(!ddraw->windowed)
     {
         This->mode.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFLAGS|DM_DISPLAYFREQUENCY|DM_POSITION;
         ChangeDisplaySettings(&This->mode, 0);
     }
+
+    This->render.run = FALSE;
+    WaitForSingleObject(This->render.thread, INFINITE);
+    This->render.thread = NULL;
+
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD height, DWORD bpp)
+{
+    printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
+
+    if(This->render.run)
+    {
+        return DD_OK;
+    }
+    This->render.run = TRUE;
+
+    /* currently we only support 8 bit modes */
+    if(bpp != 8)
+    {
+        return DDERR_INVALIDMODE;
+    }
+
+    This->mode.dmSize = sizeof(DEVMODE);
+    This->mode.dmDriverExtra = 0;
+
+    if(EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &This->mode) == FALSE)
+    {
+        /* not expected */
+        return DDERR_UNSUPPORTED;
+    }
+
+    This->width = width;
+    This->height = height;
+    This->bpp = bpp;
+
+    if(This->render.width < This->width)
+    {
+        This->render.width = This->width;
+    }
+    if(This->render.height < This->height)
+    {
+        This->render.height = This->height;
+    }
+
+    mouse_unlock();
+
+    if(This->windowed)
+    {
+        if(!This->windowed_init)
+        {
+            SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER | WS_SYSMENU | WS_MINIMIZEBOX);
+
+            /* center the window with correct dimensions */
+            int x = (This->mode.dmPelsWidth / 2) - (This->render.width / 2);
+            int y = (This->mode.dmPelsHeight / 2) - (This->render.height / 2);
+            RECT dst = { x, y, This->render.width+x, This->render.height+y };
+            AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
+            SetWindowPos(This->hWnd, HWND_NOTOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
+
+            This->windowed_init = TRUE;
+        }
+    }
+    else
+    {
+        SetWindowPos(This->hWnd, HWND_TOPMOST, 0, 0, This->render.width, This->render.height, SWP_SHOWWINDOW);
+        SendMessage(This->hWnd, WM_WINDOWPOSCHANGED, 0, 0);
+
+        mouse_lock();
+
+        memset(&This->render.mode, 0, sizeof(DEVMODE));
+        This->render.mode.dmSize = sizeof(DEVMODE);
+        This->render.mode.dmFields = DM_PELSWIDTH|DM_PELSHEIGHT;
+        This->render.mode.dmPelsWidth = This->render.width;
+        This->render.mode.dmPelsHeight = This->render.height;
+        if(This->render.bpp)
+        {
+            This->render.mode.dmFields |= DM_BITSPERPEL;
+            This->render.mode.dmBitsPerPel = This->render.bpp;
+        }
+
+        if(ChangeDisplaySettings(&This->render.mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+        {
+            This->render.run = FALSE;
+            return DDERR_INVALIDMODE;
+        }
+    }
+
+    This->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)render_main, NULL, 0, NULL);
+
     return DD_OK;
 }
 
@@ -151,6 +247,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg)
     {
+        case WM_SYSCOMMAND:
+            if(wParam == SC_CLOSE)
+            {
+                exit(0);
+            }
+            break;
+        case WM_SIZE:
+            if(wParam == SIZE_RESTORED)
+            {
+                ddraw_SetDisplayMode(ddraw, ddraw->width, ddraw->height, ddraw->bpp);
+            }
+            if(wParam == SIZE_MINIMIZED)
+            {
+                ddraw_RestoreDisplayMode(ddraw);
+            }
+            break;
         case WM_NCACTIVATE:
             /* game's drawing loop stops when it inactivates, so don't */
             DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -158,10 +270,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if(wParam == FALSE)
             {
                 mouse_unlock();
-            }
-            else
-            {
-                mouse_lock();
             }
 
             return 0;
@@ -281,75 +389,6 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
     return DD_OK;
 }
 
-HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD height, DWORD bpp)
-{
-    printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
-
-    /* currently we only support 8 bit modes */
-    if(bpp != 8)
-    {
-        return DDERR_INVALIDMODE;
-    }
-
-    This->mode.dmSize = sizeof(DEVMODE);
-    This->mode.dmDriverExtra = 0;
-
-    if(EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &This->mode) == FALSE)
-    {
-        /* not expected */
-        return DDERR_UNSUPPORTED;
-    }
-
-    This->width = width;
-    This->height = height;
-    This->bpp = bpp;
-
-    if(This->render.width < This->width)
-    {
-        This->render.width = This->width;
-    }
-    if(This->render.height < This->height)
-    {
-        This->render.height = This->height;
-    }
-
-    mouse_unlock();
-
-    if(This->windowed)
-    {
-        SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER);
-
-        /* center the window with correct dimensions */
-        int x = (This->mode.dmPelsWidth / 2) - (This->render.width / 2);
-        int y = (This->mode.dmPelsHeight / 2) - (This->render.height / 2);
-        RECT dst = { x, y, This->render.width+x, This->render.height+y };
-        AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
-        SetWindowPos(This->hWnd, HWND_NOTOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
-    }
-    else
-    {
-        SetWindowPos(This->hWnd, HWND_TOPMOST, 0, 0, This->render.width, This->render.height, SWP_SHOWWINDOW);
-        SendMessage(This->hWnd, WM_WINDOWPOSCHANGED, 0, 0);
-
-        mouse_lock();
-
-        memset(&This->render.mode, 0, sizeof(DEVMODE));
-        This->render.mode.dmSize = sizeof(DEVMODE);
-        This->render.mode.dmFields = DM_PELSWIDTH|DM_PELSHEIGHT;
-        This->render.mode.dmPelsWidth = This->render.width;
-        This->render.mode.dmPelsHeight = This->render.height;
-        if(This->render.bpp)
-        {
-            This->render.mode.dmFields |= DM_BITSPERPEL;
-            This->render.mode.dmBitsPerPel = This->render.bpp;
-        }
-
-        return ChangeDisplaySettings(&This->render.mode, CDS_FULLSCREEN) == DISP_CHANGE_SUCCESSFUL ? DD_OK : DDERR_INVALIDMODE;
-    }
-
-    return DD_OK;
-}
-
 HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HANDLE b)
 {
 #if _DEBUG
@@ -382,6 +421,13 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 
     if(This->Ref == 0)
     {
+        if(This->render.run)
+        {
+            This->render.run = FALSE;
+            WaitForSingleObject(This->render.thread, INFINITE);
+            This->render.thread = NULL;
+        }
+
         /* restore old wndproc, subsequent ddraw creation will otherwise fail */
         SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)This->WndProc);
         //free(This);

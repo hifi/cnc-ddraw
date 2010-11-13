@@ -20,7 +20,7 @@
 #include "main.h"
 #include "surface.h"
 
-DWORD WINAPI render_main(IDirectDrawSurfaceImpl *surface)
+DWORD WINAPI render_main(void)
 {
     int i,j;
     PIXELFORMATDESCRIPTOR pfd;
@@ -31,8 +31,8 @@ DWORD WINAPI render_main(IDirectDrawSurfaceImpl *surface)
 
     int tex_width = 1024;
     int tex_height = 1024;
-    float scale_w = (float)surface->width/tex_width;
-    float scale_h = (float)surface->height/tex_height;
+    float scale_w = 1.0f;
+    float scale_h = 1.0f;
     int *tex = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, tex_width * tex_height * sizeof(int));
 
     memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
@@ -53,7 +53,7 @@ DWORD WINAPI render_main(IDirectDrawSurfaceImpl *surface)
 
     if(ddraw->render.maxfps < 0)
     {
-        ddraw->render.maxfps = ddraw->freq;
+        ddraw->render.maxfps = ddraw->mode.dmDisplayFrequency;
     }
 
     if(ddraw->render.maxfps > 0)
@@ -62,6 +62,7 @@ DWORD WINAPI render_main(IDirectDrawSurfaceImpl *surface)
     }
 
     ddraw->render.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
+    InitializeCriticalSection(&ddraw->render.cs);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
     glViewport(0, 0, ddraw->render.width, ddraw->render.height);
@@ -82,6 +83,9 @@ DWORD WINAPI render_main(IDirectDrawSurfaceImpl *surface)
     while(ddraw->render.run)
     {
         ResetEvent(ddraw->render.ev);
+        
+        scale_w = (float)ddraw->width/tex_width;
+        scale_h = (float)ddraw->height/tex_height;
 
         if(ddraw->render.maxfps > 0)
         {
@@ -89,18 +93,20 @@ DWORD WINAPI render_main(IDirectDrawSurfaceImpl *surface)
         }
 
         /* convert ddraw surface to opengl texture */
-        if(surface->palette)
+        EnterCriticalSection(&ddraw->render.cs);
+        if(ddraw->primary && ddraw->primary->palette)
         {
-            for(i=0; i<surface->height; i++)
+            for(i=0; i<ddraw->height; i++)
             {
-                for(j=0; j<surface->width; j++)
+                for(j=0; j<ddraw->width; j++)
                 {
-                    tex[i*surface->width+j] = surface->palette->data_bgr[((unsigned char *)surface->surface)[i*surface->lPitch + j*surface->lXPitch]];
+                    tex[i*ddraw->width+j] = ddraw->primary->palette->data_bgr[((unsigned char *)ddraw->primary->surface)[i*ddraw->primary->lPitch + j*ddraw->primary->lXPitch]];
                 }
             }
         }
+        LeaveCriticalSection(&ddraw->render.cs);
 
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, surface->width, surface->height, GL_RGBA, GL_UNSIGNED_BYTE, tex);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ddraw->width, ddraw->height, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
         glBegin(GL_TRIANGLE_FAN);
         glTexCoord2f(0,0);              glVertex2f(-1,  1);
@@ -124,7 +130,9 @@ DWORD WINAPI render_main(IDirectDrawSurfaceImpl *surface)
         SetEvent(ddraw->render.ev);
     }
 
+    DeleteCriticalSection(&ddraw->render.cs);
     CloseHandle(ddraw->render.ev);
+    ddraw->render.ev = NULL;
 
     free(tex);
 
