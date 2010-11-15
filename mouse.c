@@ -168,7 +168,10 @@ void mouse_unlock()
 
 void mouse_init(HWND hWnd)
 {
-    SetCursor(LoadCursor(NULL, IDC_ARROW));
-    hack_iat(&hacks[0]);
-    mouse_active = TRUE;
+    if(ddraw->mhack)
+    {
+        SetCursor(LoadCursor(NULL, IDC_ARROW));
+        hack_iat(&hacks[0]);
+        mouse_active = TRUE;
+    }
 }

@@ -69,6 +69,7 @@ typedef struct IDirectDrawImpl
     RECT cursorclip;
     BOOL locked;
     BOOL adjmouse;
+    BOOL mhack;
 
     BOOL key_ctrl;
     BOOL key_tab;

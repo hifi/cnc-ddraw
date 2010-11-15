@@ -537,6 +537,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "filter=nearest\n"
             "; mouse sensitivity scaling\n"
             "adjmouse=false\n"
+            "; enable C&C/RA mouse hack\n"
+            "mhack=true\n"
         , fh);
         fclose(fh);
     }
@@ -578,7 +580,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     {
         This->render.filter = 0;
     }
-    GetPrivateProfileStringA("ddraw", "adjmouse", "TRUE", tmp, sizeof(tmp), ini_path);
+
+    GetPrivateProfileStringA("ddraw", "adjmouse", "FALSE", tmp, sizeof(tmp), ini_path);
     if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
     {
         This->adjmouse = TRUE;
@@ -586,6 +589,16 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     else
     {
         This->adjmouse = FALSE;
+    }
+
+    GetPrivateProfileStringA("ddraw", "mhack", "TRUE", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    {
+        This->mhack = TRUE;
+    }
+    else
+    {
+        This->mhack = FALSE;
     }
 
     This->Ref = 0;
