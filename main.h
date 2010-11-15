@@ -70,6 +70,7 @@ typedef struct IDirectDrawImpl
     BOOL locked;
     BOOL adjmouse;
     BOOL mhack;
+    BOOL devmode;
 
     BOOL key_ctrl;
     BOOL key_tab;

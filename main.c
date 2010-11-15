@@ -216,7 +216,10 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     else
     {
         SetWindowPos(This->hWnd, HWND_TOPMOST, 0, 0, This->render.width, This->render.height, SWP_SHOWWINDOW);
-        SendMessage(This->hWnd, WM_WINDOWPOSCHANGED, 0, 0);
+        if(!This->devmode)
+        {
+            SendMessage(This->hWnd, WM_WINDOWPOSCHANGED, 0, 0);
+        }
 
         mouse_lock();
 
@@ -231,7 +234,7 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
             This->render.mode.dmBitsPerPel = This->render.bpp;
         }
 
-        if(ChangeDisplaySettings(&This->render.mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+        if(!This->devmode && ChangeDisplaySettings(&This->render.mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
         {
             This->render.run = FALSE;
             return DDERR_INVALIDMODE;
@@ -384,7 +387,10 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
     mouse_init(hWnd);
 
     This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
-    SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
+    if(!This->devmode)
+    {
+        SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
+    }
 
     return DD_OK;
 }
@@ -599,6 +605,17 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     else
     {
         This->mhack = FALSE;
+    }
+
+    GetPrivateProfileStringA("ddraw", "devmode", "FALSE", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    {
+        This->devmode = TRUE;
+        This->mhack = FALSE;
+    }
+    else
+    {
+        This->devmode = FALSE;
     }
 
     This->Ref = 0;
