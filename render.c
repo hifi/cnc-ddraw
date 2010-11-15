@@ -62,7 +62,6 @@ DWORD WINAPI render_main(void)
     }
 
     ddraw->render.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
-    InitializeCriticalSection(&ddraw->render.cs);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
     glViewport(0, 0, ddraw->render.width, ddraw->render.height);
@@ -93,7 +92,7 @@ DWORD WINAPI render_main(void)
         }
 
         /* convert ddraw surface to opengl texture */
-        EnterCriticalSection(&ddraw->render.cs);
+        EnterCriticalSection(&ddraw->cs);
         if(ddraw->primary && ddraw->primary->palette)
         {
             for(i=0; i<ddraw->height; i++)
@@ -104,7 +103,7 @@ DWORD WINAPI render_main(void)
                 }
             }
         }
-        LeaveCriticalSection(&ddraw->render.cs);
+        LeaveCriticalSection(&ddraw->cs);
 
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ddraw->width, ddraw->height, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
@@ -130,7 +129,6 @@ DWORD WINAPI render_main(void)
         SetEvent(ddraw->render.ev);
     }
 
-    DeleteCriticalSection(&ddraw->render.cs);
     CloseHandle(ddraw->render.ev);
     ddraw->render.ev = NULL;
 

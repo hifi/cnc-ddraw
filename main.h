@@ -44,6 +44,7 @@ typedef struct IDirectDrawImpl
 
     /* real export from system32\ddraw.dll */
     HRESULT WINAPI (*DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
+    CRITICAL_SECTION cs;
 
     struct
     {
@@ -56,7 +57,6 @@ typedef struct IDirectDrawImpl
         HANDLE thread;
         BOOL run;
         HANDLE ev;
-        CRITICAL_SECTION cs;
         DEVMODE mode;
 
     } render;

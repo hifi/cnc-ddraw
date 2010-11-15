@@ -139,20 +139,24 @@ HRESULT __stdcall ddraw_Initialize(IDirectDrawImpl *This, GUID *a)
 HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 {
     printf("DirectDraw::RestoreDisplayMode(This=%p)\n", This);
+
     if(!This->render.run)
     {
         return DD_OK;
     }
+
+    EnterCriticalSection(&This->cs);
+    This->render.run = FALSE;
+    LeaveCriticalSection(&This->cs);
+
+    WaitForSingleObject(This->render.thread, INFINITE);
+    This->render.thread = NULL;
 
     if(!ddraw->windowed)
     {
         This->mode.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFLAGS|DM_DISPLAYFREQUENCY|DM_POSITION;
         ChangeDisplaySettings(&This->mode, 0);
     }
-
-    This->render.run = FALSE;
-    WaitForSingleObject(This->render.thread, INFINITE);
-    This->render.thread = NULL;
 
     return DD_OK;
 }
@@ -165,6 +169,7 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     {
         return DD_OK;
     }
+
     This->render.run = TRUE;
 
     /* currently we only support 8 bit modes */
@@ -429,10 +434,16 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
     {
         if(This->render.run)
         {
+            EnterCriticalSection(&This->cs);
+
             This->render.run = FALSE;
             WaitForSingleObject(This->render.thread, INFINITE);
             This->render.thread = NULL;
+
+            LeaveCriticalSection(&This->cs);
         }
+
+        DeleteCriticalSection(&This->cs);
 
         /* restore old wndproc, subsequent ddraw creation will otherwise fail */
         SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)This->WndProc);
@@ -519,6 +530,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         ddraw_Release(This);
         return DDERR_GENERIC;
     }
+
+    InitializeCriticalSection(&This->cs);
 
     /* load configuration options from ddraw.ini */
     char cwd[MAX_PATH];
