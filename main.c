@@ -221,10 +221,6 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     else
     {
         SetWindowPos(This->hWnd, HWND_TOPMOST, 0, 0, This->render.width, This->render.height, SWP_SHOWWINDOW);
-        if(!This->devmode)
-        {
-            SendMessage(This->hWnd, WM_WINDOWPOSCHANGED, 0, 0);
-        }
 
         mouse_lock();
 
@@ -280,6 +276,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 mouse_unlock();
             }
 
+            if(!ddraw->windowed)
+            {
+                if(wParam == FALSE)
+                {
+                    ShowWindow(ddraw->hWnd, SW_MINIMIZE);
+                }
+                else
+                {
+                    ShowWindow(ddraw->hWnd, SW_RESTORE);
+                }
+            }
+
+            /* fall trough */
+        case WM_WINDOWPOSCHANGED:
+            GetClientRect(ddraw->hWnd, &ddraw->cursorclip);
+
+            POINT pt = { ddraw->cursorclip.left, ddraw->cursorclip.top };
+            POINT pt2 = { ddraw->cursorclip.right, ddraw->cursorclip.bottom };
+            ClientToScreen(ddraw->hWnd, &pt);
+            ClientToScreen(ddraw->hWnd, &pt2);
+            SetRect(&ddraw->cursorclip, pt.x, pt.y, pt2.x, pt2.y);
+
+            ddraw->center.x = ddraw->cursorclip.left + ( (ddraw->cursorclip.right - ddraw->cursorclip.left) / 2);
+            ddraw->center.y = ddraw->cursorclip.top + ( (ddraw->cursorclip.bottom - ddraw->cursorclip.top) / 2);
+
+            DefWindowProc(hWnd, uMsg, wParam, lParam);
             return 0;
         case WM_KEYDOWN:
             if(wParam == VK_CONTROL || wParam == VK_TAB)
@@ -337,25 +359,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 ddraw->winpos.y = 0;
             }
-            break;
-        case WM_WINDOWPOSCHANGED:
-            GetClientRect(ddraw->hWnd, &ddraw->cursorclip);
-
-            POINT pt = { ddraw->cursorclip.left, ddraw->cursorclip.top };
-            POINT pt2 = { ddraw->cursorclip.right, ddraw->cursorclip.bottom };
-            ClientToScreen(ddraw->hWnd, &pt);
-            ClientToScreen(ddraw->hWnd, &pt2);
-            SetRect(&ddraw->cursorclip, pt.x, pt.y, pt2.x, pt2.y);
-
-            ddraw->center.x = ddraw->cursorclip.left + ( (ddraw->cursorclip.right - ddraw->cursorclip.left) / 2);
-            ddraw->center.y = ddraw->cursorclip.top + ( (ddraw->cursorclip.bottom - ddraw->cursorclip.top) / 2);
-
-            /* our own SendMessage only triggers this */
-            if(lParam == 0)
-            {
-                return 0;
-            }
-
             break;
     }
 
