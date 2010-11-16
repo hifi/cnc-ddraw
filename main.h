@@ -75,8 +75,6 @@ typedef struct IDirectDrawImpl
     BOOL mhack;
     BOOL devmode;
 
-    BOOL key_ctrl;
-    BOOL key_tab;
 } IDirectDrawImpl;
 
 typedef struct IDirectDrawImplVtbl IDirectDrawImplVtbl;

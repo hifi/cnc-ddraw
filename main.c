@@ -282,27 +282,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
             return 0;
         case WM_KEYDOWN:
-            if(wParam == VK_CONTROL)
+            if(wParam == VK_CONTROL || wParam == VK_TAB)
             {
-                ddraw->key_ctrl = TRUE;
-            }
-            if(wParam == VK_TAB)
-            {
-                ddraw->key_tab = TRUE;
-            }
-            if(ddraw->key_tab && ddraw->key_ctrl)
-            {
-                mouse_unlock();
-            }
-            break;
-        case WM_KEYUP:
-            if(wParam == VK_CONTROL)
-            {
-                ddraw->key_ctrl = FALSE;
-            }
-            if(wParam == VK_TAB)
-            {
-                ddraw->key_tab = FALSE;
+                if(GetAsyncKeyState(VK_CONTROL) && GetAsyncKeyState(VK_TAB))
+                {
+                    mouse_unlock();
+                }
             }
             break;
         case WM_LBUTTONDOWN:
