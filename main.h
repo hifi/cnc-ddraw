@@ -54,6 +54,9 @@ typedef struct IDirectDrawImpl
         int bpp;
         int filter;
 
+        HDC hDC;
+        int *tex;
+
         HANDLE thread;
         BOOL run;
         HANDLE ev;

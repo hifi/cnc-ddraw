@@ -379,6 +379,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DWORD dwFlags)
 {
+    PIXELFORMATDESCRIPTOR pfd;
+
     printf("DirectDraw::SetCooperativeLevel(This=%p, hWnd=0x%08X, dwFlags=0x%08X)\n", This, (unsigned int)hWnd, (unsigned int)dwFlags);
 
     /* Red Alert for some weird reason does this on Windows XP */
@@ -395,6 +397,20 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
     if(!This->devmode)
     {
         SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
+    }
+
+    if(!This->render.hDC)
+    {
+        This->render.hDC = GetDC(This->hWnd);
+
+        memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+        pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+        pfd.nVersion = 1;
+        pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+        pfd.iPixelType = PFD_TYPE_RGBA;
+        pfd.cColorBits = ddraw->render.bpp ? ddraw->render.bpp : ddraw->mode.dmBitsPerPel;
+        pfd.iLayerType = PFD_MAIN_PLANE;
+        SetPixelFormat( This->render.hDC, ChoosePixelFormat( This->render.hDC, &pfd ), &pfd );
     }
 
     return DD_OK;
@@ -441,6 +457,18 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
             This->render.thread = NULL;
 
             LeaveCriticalSection(&This->cs);
+        }
+
+        if(This->render.hDC)
+        {
+            ReleaseDC(This->hWnd, This->render.hDC);
+            This->render.hDC = NULL;
+        }
+
+        if(This->render.ev)
+        {
+            CloseHandle(This->render.ev);
+            ddraw->render.ev = NULL;
         }
 
         DeleteCriticalSection(&This->cs);
@@ -532,6 +560,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     InitializeCriticalSection(&This->cs);
+    This->render.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     /* load configuration options from ddraw.ini */
     char cwd[MAX_PATH];

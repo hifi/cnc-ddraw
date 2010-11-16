@@ -23,11 +23,7 @@
 DWORD WINAPI render_main(void)
 {
     int i,j;
-    PIXELFORMATDESCRIPTOR pfd;
-    HDC hDC;
     HGLRC hRC;
-
-    hDC = GetDC(ddraw->hWnd);
 
     int tex_width = 1024;
     int tex_height = 1024;
@@ -35,17 +31,8 @@ DWORD WINAPI render_main(void)
     float scale_h = 1.0f;
     int *tex = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, tex_width * tex_height * sizeof(int));
 
-    memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
-    pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-    pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = ddraw->render.bpp ? ddraw->render.bpp : ddraw->mode.dmBitsPerPel;
-    pfd.iLayerType = PFD_MAIN_PLANE;
-    SetPixelFormat( hDC, ChoosePixelFormat( hDC, &pfd ), &pfd );
-
-    hRC = wglCreateContext( hDC );
-    wglMakeCurrent( hDC, hRC );
+    hRC = wglCreateContext( ddraw->render.hDC );
+    wglMakeCurrent( ddraw->render.hDC, hRC );
 
     DWORD tick_start;
     DWORD tick_end;
@@ -60,8 +47,6 @@ DWORD WINAPI render_main(void)
     {
         frame_len = 1000.0f / ddraw->render.maxfps;
     }
-
-    ddraw->render.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
     glViewport(0, 0, ddraw->render.width, ddraw->render.height);
@@ -114,7 +99,7 @@ DWORD WINAPI render_main(void)
         glTexCoord2f(0,scale_h);        glVertex2f(-1, -1);
         glEnd();
 
-        SwapBuffers(hDC);
+        SwapBuffers(ddraw->render.hDC);
 
         if(ddraw->render.maxfps > 0)
         {
@@ -130,12 +115,9 @@ DWORD WINAPI render_main(void)
     }
 
     HeapFree(GetProcessHeap(), 0, tex);
-    CloseHandle(ddraw->render.ev);
-    ddraw->render.ev = NULL;
 
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(hRC);
-    ReleaseDC(ddraw->hWnd, hDC);
 
     return 0;
 }
