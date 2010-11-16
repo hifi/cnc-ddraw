@@ -129,10 +129,9 @@ DWORD WINAPI render_main(void)
         SetEvent(ddraw->render.ev);
     }
 
+    HeapFree(GetProcessHeap(), 0, tex);
     CloseHandle(ddraw->render.ev);
     ddraw->render.ev = NULL;
-
-    free(tex);
 
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(hRC);

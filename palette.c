@@ -64,7 +64,7 @@ ULONG __stdcall ddraw_palette_Release(IDirectDrawPaletteImpl *This)
 
     if(This->Ref == 0)
     {
-        free(This);
+        HeapFree(GetProcessHeap(), 0, This);
         return 0;
     }
 

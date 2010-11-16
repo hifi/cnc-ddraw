@@ -52,7 +52,7 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
         }
         if(This->surface)
         {
-            free(This->surface);
+            HeapFree(GetProcessHeap(), 0, This->surface);
         }
         if(This->palette)
         {
@@ -433,7 +433,7 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
     {
         Surface->lPitch = Surface->width;
         Surface->lXPitch = Surface->bpp / 8;
-        Surface->surface = malloc(Surface->width * Surface->height * Surface->lXPitch);
+        Surface->surface = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, Surface->width * Surface->height * Surface->lXPitch);
     }
 
     printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);
