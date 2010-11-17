@@ -515,8 +515,10 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "; bits per pixel, possible values: 16, 24 and 32, 0 = auto\n"
             "bpp=0\n"
             "windowed=true\n"
-            "; real rendering rate, -1 = vsync, 0 = unlimited, n = cap\n"
+            "; real rendering rate, -1 = screen rate, 0 = unlimited, n = cap\n"
             "maxfps=120\n"
+            "; vertical synchronization, enable if you get tearing\n"
+            "vsync=false\n"
             "; scaling filter, nearest = sharp, linear = smooth\n"
             "filter=nearest\n"
             "; mouse sensitivity scaling\n"
@@ -594,6 +596,16 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     else
     {
         This->devmode = FALSE;
+    }
+
+    GetPrivateProfileStringA("ddraw", "vsync", "FALSE", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    {
+        This->vsync = TRUE;
+    }
+    else
+    {
+        This->vsync = FALSE;
     }
 
     This->Ref = 0;

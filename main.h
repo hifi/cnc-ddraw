@@ -73,6 +73,7 @@ typedef struct IDirectDrawImpl
     BOOL adjmouse;
     BOOL mhack;
     BOOL devmode;
+    BOOL vsync;
 
 } IDirectDrawImpl;
 

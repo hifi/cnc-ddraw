@@ -34,6 +34,24 @@ DWORD WINAPI render_main(void)
     hRC = wglCreateContext( ddraw->render.hDC );
     wglMakeCurrent( ddraw->render.hDC, hRC );
 
+    char *glext = (char *)glGetString(GL_EXTENSIONS);
+
+    if(glext && strstr(glext, "WGL_EXT_swap_control"))
+    {
+        BOOL (APIENTRY *wglSwapIntervalEXT)(int) = (BOOL (APIENTRY *)(int))wglGetProcAddress("wglSwapIntervalEXT");
+        if(wglSwapIntervalEXT)
+        {
+            if(ddraw->vsync)
+            {
+                wglSwapIntervalEXT(1);
+            }
+            else
+            {
+                wglSwapIntervalEXT(0);
+            }
+        }
+    }
+
     DWORD tick_start;
     DWORD tick_end;
     DWORD frame_len;
