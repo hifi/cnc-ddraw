@@ -306,7 +306,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_KEYDOWN:
             if(wParam == VK_CONTROL || wParam == VK_TAB)
             {
-                if(GetAsyncKeyState(VK_CONTROL) && GetAsyncKeyState(VK_TAB))
+                if(GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState(VK_TAB) & 0x8000)
                 {
                     mouse_unlock();
                 }
