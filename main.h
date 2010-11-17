@@ -66,7 +66,6 @@ typedef struct IDirectDrawImpl
 
     HWND hWnd;
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);
-    POINT winpos;
     struct { float x; float y; } cursor;
     POINT center;
     RECT cursorclip;

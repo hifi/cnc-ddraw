@@ -348,18 +348,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
             }
             break;
-        case WM_MOVE:
-            ddraw->winpos.x = LOWORD(lParam);
-            ddraw->winpos.y = HIWORD(lParam);
-            if(ddraw->winpos.x < 0)
-            {
-                ddraw->winpos.x = 0;
-            }
-            if(ddraw->winpos.y < 0)
-            {
-                ddraw->winpos.y = 0;
-            }
-            break;
     }
 
     return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
