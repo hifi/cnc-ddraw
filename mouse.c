@@ -34,6 +34,34 @@ struct hack
 
 BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
 {
+    POINT pt;
+
+    if(mouse_active && ddraw->locked)
+    {
+        GetCursorPos(&pt);
+
+        if(ddraw->adjmouse)
+        {
+            ddraw->cursor.x += (pt.x - ddraw->center.x) * ((float)ddraw->width / ddraw->render.width);
+            ddraw->cursor.y += (pt.y - ddraw->center.y) * ((float)ddraw->height / ddraw->render.height);
+        }
+        else
+        {
+            ddraw->cursor.x += pt.x - ddraw->center.x;
+            ddraw->cursor.y += pt.y - ddraw->center.y;
+        }
+
+        if(ddraw->cursor.x < 0) ddraw->cursor.x = 0;
+        if(ddraw->cursor.y < 0) ddraw->cursor.y = 0;
+        if(ddraw->cursor.x > ddraw->width-1) ddraw->cursor.x = ddraw->width-1;
+        if(ddraw->cursor.y > ddraw->height-1) ddraw->cursor.y = ddraw->height-1;
+
+        if(pt.x != ddraw->center.x || pt.y != ddraw->center.y)
+        {
+            SetCursorPos(ddraw->center.x, ddraw->center.y);
+        }
+    }
+
     lpPoint->x = (int)ddraw->cursor.x;
     lpPoint->y = (int)ddraw->cursor.y;
     return TRUE;
@@ -138,12 +166,21 @@ void hack_iat(struct hack *hck)
 
 void mouse_lock()
 {
+    RECT rc;
+
     if(mouse_active && !ddraw->locked)
     {
-        ddraw->locked = TRUE;
+        GetWindowRect(ddraw->hWnd, &rc);
+        
+        ddraw->center.x = (rc.right + rc.left) / 2;
+        ddraw->center.y = (rc.top + rc.bottom) / 2;
+
         SetCursorPos(ddraw->center.x, ddraw->center.y);
-        ClipCursor(&ddraw->cursorclip);
+        SetCapture(ddraw->hWnd);
+        ClipCursor(&rc);
+
         while(ShowCursor(FALSE) > 0);
+        ddraw->locked = TRUE;
     }
 }
 
@@ -158,10 +195,13 @@ void mouse_unlock()
     {
         while(ShowCursor(TRUE) < 0);
         SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+        ClipCursor(NULL);
+        ReleaseCapture();
+
+        ddraw->locked = FALSE;
     }
 
-    ddraw->locked = FALSE;
-    ClipCursor(NULL);
     ddraw->cursor.x = ddraw->width / 2;
     ddraw->cursor.y = ddraw->height / 2;
 }
@@ -170,7 +210,6 @@ void mouse_init(HWND hWnd)
 {
     if(ddraw->mhack)
     {
-        SetCursor(LoadCursor(NULL, IDC_ARROW));
         hack_iat(&hacks[0]);
         mouse_active = TRUE;
     }

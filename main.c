@@ -287,21 +287,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     ShowWindow(ddraw->hWnd, SW_RESTORE);
                 }
             }
-
-            /* fall trough */
-        case WM_WINDOWPOSCHANGED:
-            GetClientRect(ddraw->hWnd, &ddraw->cursorclip);
-
-            POINT pt = { ddraw->cursorclip.left, ddraw->cursorclip.top };
-            POINT pt2 = { ddraw->cursorclip.right, ddraw->cursorclip.bottom };
-            ClientToScreen(ddraw->hWnd, &pt);
-            ClientToScreen(ddraw->hWnd, &pt2);
-            SetRect(&ddraw->cursorclip, pt.x, pt.y, pt2.x, pt2.y);
-
-            ddraw->center.x = ddraw->cursorclip.left + ( (ddraw->cursorclip.right - ddraw->cursorclip.left) / 2);
-            ddraw->center.y = ddraw->cursorclip.top + ( (ddraw->cursorclip.bottom - ddraw->cursorclip.top) / 2);
-
-            DefWindowProc(hWnd, uMsg, wParam, lParam);
             return 0;
         case WM_KEYDOWN:
             if(wParam == VK_CONTROL || wParam == VK_TAB)
@@ -322,31 +307,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 return 0;
             }
             lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
-            break;
-        case WM_MOUSEMOVE:
-            if(ddraw->locked)
-            {
-                if(LOWORD(lParam) != ddraw->render.width / 2 || HIWORD(lParam) != ddraw->render.height / 2)
-                {
-                    if(ddraw->adjmouse)
-                    {
-                        ddraw->cursor.x += (LOWORD(lParam) - ddraw->render.width / 2) * ((float)ddraw->width / ddraw->render.width);
-                        ddraw->cursor.y += (HIWORD(lParam) - ddraw->render.height / 2) * ((float)ddraw->height / ddraw->render.height);
-                    }
-                    else
-                    {
-                        ddraw->cursor.x += LOWORD(lParam) - ddraw->render.width / 2;
-                        ddraw->cursor.y += HIWORD(lParam) - ddraw->render.height / 2;
-                    }
-
-                    if(ddraw->cursor.x < 0) ddraw->cursor.x = 0;
-                    if(ddraw->cursor.y < 0) ddraw->cursor.y = 0;
-                    if(ddraw->cursor.x > ddraw->width-1) ddraw->cursor.x = ddraw->width-1;
-                    if(ddraw->cursor.y > ddraw->height-1) ddraw->cursor.y = ddraw->height-1;
-
-                    SetCursorPos(ddraw->center.x, ddraw->center.y);
-                }
-            }
             break;
     }
 
