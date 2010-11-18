@@ -84,8 +84,6 @@ DWORD WINAPI render_main(void)
 
     while(ddraw->render.run)
     {
-        ResetEvent(ddraw->render.ev);
-        
         scale_w = (float)ddraw->width/tex_width;
         scale_h = (float)ddraw->height/tex_height;
 

@@ -357,7 +357,6 @@ HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HAN
 #if _DEBUG
     printf("DirectDraw::WaitForVerticalBlank(This=%p, ...)\n", This);
 #endif
-    WaitForSingleObject(This->render.ev, INFINITE);
     return DD_OK;
 }
 
