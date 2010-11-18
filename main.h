@@ -74,6 +74,7 @@ typedef struct IDirectDrawImpl
     BOOL mhack;
     BOOL devmode;
     BOOL vsync;
+    float sensitivity;
 
 } IDirectDrawImpl;
 

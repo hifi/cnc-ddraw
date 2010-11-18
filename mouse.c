@@ -40,7 +40,12 @@ BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
     {
         GetCursorPos(&pt);
 
-        if(ddraw->adjmouse)
+        if(ddraw->sensitivity > 0 && ddraw->sensitivity < 10)
+        {
+            ddraw->cursor.x += (pt.x - ddraw->center.x) * ddraw->sensitivity;
+            ddraw->cursor.y += (pt.y - ddraw->center.y) * ddraw->sensitivity;
+        }
+        else if(ddraw->adjmouse)
         {
             ddraw->cursor.x += (pt.x - ddraw->center.x) * ((float)ddraw->width / ddraw->render.width);
             ddraw->cursor.y += (pt.y - ddraw->center.y) * ((float)ddraw->height / ddraw->render.height);

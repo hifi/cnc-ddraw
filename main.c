@@ -520,8 +520,10 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "vsync=false\n"
             "; scaling filter, nearest = sharp, linear = smooth\n"
             "filter=nearest\n"
-            "; mouse sensitivity scaling\n"
+            "; automatic mouse sensitivity scaling\n"
             "adjmouse=false\n"
+            "; manual sensitivity scaling, 0 = disabled, 0.5 = half, 1.0 = normal\n"
+            "sensitivity=0.0\n"
             "; enable C&C/RA mouse hack\n"
             "mhack=true\n"
         , fh);
@@ -606,6 +608,9 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     {
         This->vsync = FALSE;
     }
+
+    GetPrivateProfileStringA("ddraw", "sensitivity", "0", tmp, sizeof(tmp), ini_path);
+    This->sensitivity = strtof(tmp, NULL);
 
     This->Ref = 0;
     ddraw_AddRef(This);
