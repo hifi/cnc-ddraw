@@ -58,7 +58,7 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
         {
             IDirectDrawPalette_Release(This->palette);
         }
-        //free(This);
+        HeapFree(GetProcessHeap(), 0, This);
         return 0;
     }
     return This->Ref;

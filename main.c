@@ -410,7 +410,7 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 
         /* restore old wndproc, subsequent ddraw creation will otherwise fail */
         SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)This->WndProc);
-        //free(This);
+        HeapFree(GetProcessHeap(), 0, This);
         ddraw = NULL;
         return 0;
     }
