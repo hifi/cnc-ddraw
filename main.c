@@ -29,6 +29,11 @@ void mouse_init(HWND);
 void mouse_lock();
 void mouse_unlock();
 
+/* from screenshot.c */
+#ifdef HAVE_LIBPNG
+BOOL screenshot(struct IDirectDrawSurfaceImpl *);
+#endif
+
 IDirectDrawImpl *ddraw = NULL;
 
 DWORD WINAPI render_main(void);
@@ -296,6 +301,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     mouse_unlock();
                 }
             }
+#ifdef HAVE_LIBPNG
+            else if(wParam == VK_SNAPSHOT)
+            {
+                screenshot(ddraw->primary);
+            }
+#endif
             break;
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
