@@ -256,6 +256,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg)
     {
+        case WM_DESTROY:
+            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
         case WM_SYSCOMMAND:
             if(wParam == SC_CLOSE)
             {
@@ -273,9 +275,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
             break;
         case WM_NCACTIVATE:
-            /* game's drawing loop stops when it inactivates, so don't */
-            DefWindowProc(hWnd, uMsg, wParam, lParam);
-
             if(wParam == FALSE)
             {
                 mouse_unlock();
@@ -292,7 +291,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     ShowWindow(ddraw->hWnd, SW_RESTORE);
                 }
             }
-            return 0;
+            break;
         case WM_KEYDOWN:
             if(wParam == VK_CONTROL || wParam == VK_TAB)
             {
@@ -310,7 +309,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
             }
 #endif
-            break;
+            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_LBUTTONUP:
@@ -321,10 +320,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 return 0;
             }
             lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
-            break;
+            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
     }
 
-    return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DWORD dwFlags)
