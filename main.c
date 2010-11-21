@@ -302,9 +302,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
             }
 #ifdef HAVE_LIBPNG
-            else if(wParam == VK_SNAPSHOT)
+            if(wParam == VK_CONTROL || wParam == 0x53 /* S */)
             {
-                screenshot(ddraw->primary);
+                if(GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState(0x53) & 0x8000)
+                {
+                    screenshot(ddraw->primary);
+                }
             }
 #endif
             break;
@@ -359,6 +362,9 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
         pfd.iLayerType = PFD_MAIN_PLANE;
         SetPixelFormat( This->render.hDC, ChoosePixelFormat( This->render.hDC, &pfd ), &pfd );
     }
+
+    GetWindowText(This->hWnd, (LPTSTR)&This->title, sizeof(This->title));
+    printf("wintitle: %s\n", This->title);
 
     return DD_OK;
 }

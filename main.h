@@ -41,6 +41,7 @@ typedef struct IDirectDrawImpl
     BOOL windowed_init;
     DEVMODE mode;
     struct IDirectDrawSurfaceImpl *primary;
+    char title[128];
 
     /* real export from system32\ddraw.dll */
     HRESULT WINAPI (*DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
