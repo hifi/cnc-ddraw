@@ -30,15 +30,32 @@ BOOL screenshot(struct IDirectDrawSurfaceImpl *src)
 {
     int i;
     FILE *fh;
+    char title[128];
+    char filename[128];
 
     png_structp png_ptr;
     png_infop info_ptr;
     png_bytep *row_pointers;
     png_color palette[256];
 
-    char filename[64];
+    char str_time[64];
     time_t t = time(NULL);
-    strftime(filename, 64, "screenshot-%Y-%m-%d-%H_%M_%S.png", localtime(&t));
+
+    strncpy(title, ddraw->title, sizeof(ddraw->title));
+
+    for(i=0;i<strlen(title);i++) {
+        if(title[i] == ' ')
+        {
+            title[i] = '_';
+        }
+        else
+        {
+            title[i] = tolower(title[i]);
+        }
+    }
+
+    strftime(str_time, 64, "%Y-%m-%d-%H_%M_%S", localtime(&t));
+    snprintf(filename, 128, "%s-%s.png", title, str_time);
 
     if(!src || !src->palette)
     {
