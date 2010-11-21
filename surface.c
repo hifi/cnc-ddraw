@@ -93,7 +93,7 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
     }
 #endif
 
-    if(This->caps & DDSCAPS_PRIMARYSURFACE)
+    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
     {
         WaitForSingleObject(ddraw->render.ev, INFINITE);
         ResetEvent(ddraw->render.ev);
