@@ -1,0 +1,24 @@
+1 VERSIONINFO
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904B0"
+        {
+            VALUE "CompanyName", "Toni Spets"
+            VALUE "FileDescription", "DirectDraw replacement for C&C95 and Red Alert"
+            VALUE "FileVersion", "git~__REV__"
+            VALUE "InternalName", "ddraw"
+            VALUE "LegalCopyright", "Copyright (c) 2010 Toni Spets"
+            VALUE "LegalTrademarks", ""
+            VALUE "OriginalFileName", "ddraw.dll"
+            VALUE "ProductName", "DirectDraw replacement for C&C95 and Red Alert"
+            VALUE "ProductVersion", "git~__REV__"
+            VALUE "Comments", "http://hifi.iki.fi/cnc-ddraw/"
+        }
+    }
+
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation",  0x0409, 0x04B0
+    }
+}
