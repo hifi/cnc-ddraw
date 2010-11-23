@@ -422,6 +422,11 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
             ddraw->render.ev = NULL;
         }
 
+        if(This->real_dll)
+        {
+            FreeLibrary(This->real_dll);
+        }
+
         DeleteCriticalSection(&This->cs);
 
         /* restore old wndproc, subsequent ddraw creation will otherwise fail */
@@ -488,21 +493,23 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         */
     } 
 
-    HMODULE real_dll = LoadLibrary("system32\\ddraw.dll");
-    if(!real_dll)
-    {
-        return DDERR_GENERIC;
-    }
-
     IDirectDrawImpl *This = (IDirectDrawImpl *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectDrawImpl));
     This->lpVtbl = &iface;
     printf(" This = %p\n", This);
     *lplpDD = (LPDIRECTDRAW)This;
+    This->Ref = 0;
+    ddraw_AddRef(This);
+
     ddraw = This;
 
-    This->DirectDrawCreate = (HRESULT WINAPI (*)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*))GetProcAddress(real_dll, "DirectDrawCreate");
+    This->real_dll = LoadLibrary("system32\\ddraw.dll");
+    if(!This->real_dll)
+    {
+        ddraw_Release(This);
+        return DDERR_GENERIC;
+    }
 
-    CloseHandle(real_dll);
+    This->DirectDrawCreate = (HRESULT WINAPI (*)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*))GetProcAddress(This->real_dll, "DirectDrawCreate");
 
     if(!This->DirectDrawCreate)
     {
@@ -627,9 +634,6 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
 
     GetPrivateProfileStringA("ddraw", "sensitivity", "0", tmp, sizeof(tmp), ini_path);
     This->sensitivity = strtof(tmp, NULL);
-
-    This->Ref = 0;
-    ddraw_AddRef(This);
 
     return DD_OK;
 }
