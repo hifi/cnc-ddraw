@@ -309,6 +309,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
             }
 #endif
+        case WM_KEYUP:
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP:
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
