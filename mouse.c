@@ -24,6 +24,7 @@
 #define MAX_HOOKS 16
 
 BOOL mouse_active = FALSE;
+int real_height = 0;
 
 struct hook { char name[32]; void *func; };
 struct hack
@@ -59,7 +60,15 @@ BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
         if(ddraw->cursor.x < 0) ddraw->cursor.x = 0;
         if(ddraw->cursor.y < 0) ddraw->cursor.y = 0;
         if(ddraw->cursor.x > ddraw->width-1) ddraw->cursor.x = ddraw->width-1;
-        if(ddraw->cursor.y > ddraw->height-1) ddraw->cursor.y = ddraw->height-1;
+
+        if(real_height)
+        {
+            if(ddraw->cursor.y > real_height-1) ddraw->cursor.y = real_height-1;
+        }
+        else
+        {
+            if(ddraw->cursor.y > ddraw->height-1) ddraw->cursor.y = ddraw->height-1;
+        }
 
         if(pt.x != ddraw->center.x || pt.y != ddraw->center.y)
         {
@@ -74,6 +83,11 @@ BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
 
 BOOL WINAPI fake_ClipCursor(const RECT *lpRect)
 {
+    if(lpRect)
+    {
+        /* hack for 640x480 mode */
+        real_height = lpRect->bottom;
+    }
     return TRUE;
 }
 
