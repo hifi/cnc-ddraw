@@ -317,12 +317,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_RBUTTONDOWN:
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
-            if(!ddraw->locked)
+            if(ddraw->mhack)
             {
-                mouse_lock();
-                return 0;
+                if(!ddraw->locked)
+                {
+                    mouse_lock();
+                    return 0;
+                }
+                lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
             }
-            lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
         case 1139: /* this somehow triggers network activity in RA, investigate */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
     }
