@@ -327,6 +327,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
             }
         case 1139: /* this somehow triggers network activity in RA, investigate */
+        case 2024: /* this somehow allows RA edwin to work, investigate */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
     }
 
