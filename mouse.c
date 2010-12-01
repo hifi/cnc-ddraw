@@ -93,7 +93,12 @@ BOOL WINAPI fake_ClipCursor(const RECT *lpRect)
 
 int WINAPI fake_ShowCursor(BOOL bShow)
 {
-    return TRUE;
+    static int count = 0;
+    if(bShow)
+        count++;
+    else
+        count--;
+    return count;
 }
 
 HCURSOR WINAPI fake_SetCursor(HCURSOR hCursor)
