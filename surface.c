@@ -232,6 +232,18 @@ HRESULT __stdcall ddraw_surface_GetPixelFormat(IDirectDrawSurfaceImpl *This, LPD
 HRESULT __stdcall ddraw_surface_GetSurfaceDesc(IDirectDrawSurfaceImpl *This, LPDDSURFACEDESC a)
 {
     printf("IDirectDrawSurface::GetSurfaceDesc(This=%p, ...)\n", This);
+
+    a->dwFlags = DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH|DDSD_PIXELFORMAT;
+    a->dwWidth = This->width;
+    a->dwHeight = This->height;
+    a->lPitch = This->lPitch;
+    a->ddpfPixelFormat.dwFlags = DDPF_RGB;
+    a->ddpfPixelFormat.dwRGBBitCount = This->bpp;
+    /* RGB 555 */
+    a->ddpfPixelFormat.dwRBitMask = 0x7C00;
+    a->ddpfPixelFormat.dwGBitMask = 0x03E0;
+    a->ddpfPixelFormat.dwBBitMask = 0x001F;
+
     return DD_OK;
 }
 
@@ -432,9 +444,9 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
     if(Surface->width && Surface->height)
     {
-        Surface->lPitch = Surface->width;
         Surface->lXPitch = Surface->bpp / 8;
-        Surface->surface = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, Surface->width * Surface->height * Surface->lXPitch);
+        Surface->lPitch = Surface->width * Surface->lXPitch;
+        Surface->surface = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, Surface->lPitch * Surface->height * Surface->lXPitch);
     }
 
     printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);

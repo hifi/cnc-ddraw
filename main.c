@@ -206,8 +206,8 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
     This->render.run = TRUE;
 
-    /* currently we only support 8 bit modes */
-    if(bpp != 8)
+    /* currently we only support 8 and 16 bit modes */
+    if(bpp != 8 && bpp != 16)
     {
         return DDERR_INVALIDMODE;
     }

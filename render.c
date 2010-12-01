@@ -99,7 +99,7 @@ DWORD WINAPI render_main(void)
 
         /* convert ddraw surface to opengl texture */
         EnterCriticalSection(&ddraw->cs);
-        if(ddraw->primary && ddraw->primary->palette)
+        if(ddraw->primary)
         {
             if(ddraw->vhack && detect_cutscene())
             {
@@ -125,11 +125,25 @@ DWORD WINAPI render_main(void)
                 }
             }
 
-            for(i=0; i<ddraw->height; i++)
+            if(ddraw->primary->palette)
             {
-                for(j=0; j<ddraw->width; j++)
+                for(i=0; i<ddraw->height; i++)
                 {
-                    tex[i*ddraw->width+j] = ddraw->primary->palette->data_bgr[((unsigned char *)ddraw->primary->surface)[i*ddraw->primary->lPitch + j*ddraw->primary->lXPitch]];
+                    for(j=0; j<ddraw->width; j++)
+                    {
+                        tex[i*ddraw->width+j] = ddraw->primary->palette->data_bgr[((unsigned char *)ddraw->primary->surface)[i*ddraw->primary->lPitch + j*ddraw->primary->lXPitch]];
+                    }
+                }
+            }
+            else if(ddraw->primary->bpp == 16)
+            {
+                for(i=0; i<ddraw->height; i++)
+                {
+                    for(j=0; j<ddraw->width; j++)
+                    {
+                        WORD rgb16 = ((WORD *)ddraw->primary->surface)[i*ddraw->primary->lPitch + j];
+                        tex[i*ddraw->width+j] = ((rgb16 & 0x001F) << 3 << 16)|(((rgb16 & 0x03E0) >> 5) << 3 << 8)|(((rgb16 & 0x7C00) >> 10) << 3);
+                    }
                 }
             }
         }
