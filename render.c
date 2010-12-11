@@ -52,9 +52,9 @@ DWORD WINAPI render_main(void)
         }
     }
 
-    DWORD tick_start;
-    DWORD tick_end;
-    DWORD frame_len;
+    DWORD tick_start = 0;
+    DWORD tick_end = 0;
+    DWORD frame_len = 0;
 
     if(ddraw->render.maxfps < 0)
     {
