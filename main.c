@@ -53,9 +53,41 @@ HRESULT __stdcall ddraw_DuplicateSurface(IDirectDrawImpl *This, LPDIRECTDRAWSURF
     return DD_OK;
 }
 
-HRESULT __stdcall ddraw_EnumDisplayModes(IDirectDrawImpl *This, DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMMODESCALLBACK d)
+HRESULT __stdcall ddraw_EnumDisplayModes(IDirectDrawImpl *This, DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback)
 {
-    printf("DirectDraw::EnumDisplayModes(This=%p, ...)\n", This);
+    DWORD i = 0;
+    DEVMODE m;
+    DDSURFACEDESC s;
+
+    printf("DirectDraw::EnumDisplayModes(This=%p, dwFlags=%d, lpDDSurfaceDesc=%p, lpContext=%p, lpEnumModesCallback=%p)\n", This, (unsigned int)dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
+
+    if(lpDDSurfaceDesc != NULL)
+    {
+        return DDERR_UNSUPPORTED;
+    }
+
+    while(EnumDisplaySettings(NULL, i, &m))
+    {
+        printf("  %d: %dx%d@%d %d bpp\n", (int)i, (int)m.dmPelsWidth, (int)m.dmPelsHeight, (int)m.dmDisplayFrequency, (int)m.dmBitsPerPel);
+
+        memset(&s, 0, sizeof(DDSURFACEDESC));
+        s.dwSize = sizeof(DDSURFACEDESC);
+        s.dwFlags = DDSD_HEIGHT|DDSD_REFRESHRATE|DDSD_WIDTH|DDSD_PIXELFORMAT;
+        s.dwHeight = m.dmPelsHeight;
+        s.dwWidth = m.dmPelsWidth;
+        s.dwRefreshRate = m.dmDisplayFrequency;
+        s.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+        s.ddpfPixelFormat.dwFlags = m.dmBitsPerPel == 8 ? DDPF_PALETTEINDEXED8 : DDPF_RGB;
+        s.ddpfPixelFormat.dwRGBBitCount = m.dmBitsPerPel;
+
+        if(lpEnumModesCallback(&s, lpContext) == DDENUMRET_CANCEL)
+        {
+            printf("    DDENUMRET_CANCEL returned, stopping\n");
+            break;
+        }
+        i++;
+    }
+
     return DD_OK;
 }
 
