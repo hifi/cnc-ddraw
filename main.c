@@ -25,6 +25,7 @@
 #include "clipper.h"
 
 /* from mouse.c */
+BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint);
 void mouse_init(HWND);
 void mouse_lock();
 void mouse_unlock();
@@ -254,6 +255,8 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    POINT pt;
+
     switch(uMsg)
     {
         case WM_DESTROY:
@@ -312,11 +315,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_KEYUP:
         case WM_SYSKEYDOWN:
         case WM_SYSKEYUP:
+        case WM_CHAR: /* for StarCraft and general support */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
+        /* rest for StarCraft and general support */
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONUP:
+        case WM_MBUTTONDBLCLK:
+        case WM_LBUTTONDBLCLK:
+        case WM_RBUTTONDBLCLK:
             if(ddraw->mhack)
             {
                 if(!ddraw->locked)
@@ -329,6 +339,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case 1139: /* this somehow triggers network activity in RA, investigate */
         case 2024: /* this somehow allows RA edwin to work, investigate */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+
+        /* for StartCraft and general support */
+        case WM_MOUSEMOVE:
+            fake_GetCursorPos(&pt);
+            return ddraw->WndProc(hWnd, uMsg, wParam, MAKELPARAM(pt.x, pt.y));
     }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
