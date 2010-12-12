@@ -327,6 +327,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_MBUTTONDBLCLK:
         case WM_LBUTTONDBLCLK:
         case WM_RBUTTONDBLCLK:
+        case WM_NCLBUTTONDOWN:
+        case WM_NCRBUTTONDOWN:
+        case WM_NCLBUTTONUP:
+        case WM_NCRBUTTONUP:
+        case WM_NCMBUTTONDOWN:
+        case WM_NCMBUTTONUP:
+        case WM_NCMBUTTONDBLCLK:
+        case WM_NCLBUTTONDBLCLK:
+        case WM_NCRBUTTONDBLCLK:
             if(ddraw->mhack)
             {
                 if(!ddraw->locked)
@@ -340,10 +349,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case 2024: /* this somehow allows RA edwin to work, investigate */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
 
-        /* for StartCraft and general support */
+        /* for StarCraft and general support */
         case WM_MOUSEMOVE:
-            fake_GetCursorPos(&pt);
-            return ddraw->WndProc(hWnd, uMsg, wParam, MAKELPARAM(pt.x, pt.y));
+        case WM_NCMOUSEMOVE:
+            if(ddraw->mhack)
+            {
+                fake_GetCursorPos(&pt);
+                return ddraw->WndProc(hWnd, uMsg, wParam, MAKELPARAM(pt.x, pt.y));
+            }
+            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
     }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -386,7 +400,6 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
     }
 
     GetWindowText(This->hWnd, (LPTSTR)&This->title, sizeof(This->title));
-    printf("wintitle: %s\n", This->title);
 
     return DD_OK;
 }

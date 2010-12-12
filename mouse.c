@@ -126,8 +126,6 @@ void hack_iat(struct hack *hck)
     int i;
     char buf[32];
     struct hook *hk;
-    DWORD tmp;
-    HANDLE hProcess;
     DWORD dwWritten;
     IMAGE_DOS_HEADER dos_hdr;
     IMAGE_NT_HEADERS nt_hdr;
@@ -135,10 +133,8 @@ void hack_iat(struct hack *hck)
     IMAGE_THUNK_DATA thunk;
     PDWORD ptmp;
 
-    GetWindowThreadProcessId(ddraw->hWnd, &tmp);
-
     HMODULE base = GetModuleHandle(NULL);
-    hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, tmp);
+    HANDLE hProcess = GetCurrentProcess();
 
     ReadProcessMemory(hProcess, (void *)base, &dos_hdr, sizeof(IMAGE_DOS_HEADER), &dwWritten);
     ReadProcessMemory(hProcess, (void *)base+dos_hdr.e_lfanew, &nt_hdr, sizeof(IMAGE_NT_HEADERS), &dwWritten);
@@ -167,6 +163,7 @@ void hack_iat(struct hack *hck)
                         thunk.u1.Function = (DWORD)hk->func;
                         thunk.u1.Ordinal = (DWORD)hk->func;
                         thunk.u1.AddressOfData = (DWORD)hk->func;
+                        VirtualProtectEx(hProcess, (void *)base+dir->FirstThunk+(sizeof(IMAGE_THUNK_DATA) * i), sizeof(IMAGE_THUNK_DATA), PAGE_EXECUTE_READWRITE, &dwWritten);
                         WriteProcessMemory(hProcess, (void *)base+dir->FirstThunk+(sizeof(IMAGE_THUNK_DATA) * i), &thunk, sizeof(IMAGE_THUNK_DATA), &dwWritten);
                         mouse_active = TRUE;
                     }
