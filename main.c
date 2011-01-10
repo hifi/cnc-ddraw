@@ -276,6 +276,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 ddraw_RestoreDisplayMode(ddraw);
             }
+            /* disallow maximize, C&C does that when WCHAT DDE is used */
+            if(wParam == SIZE_MAXIMIZED)
+            {
+                ShowWindow(ddraw->hWnd, SW_RESTORE);
+            }
             break;
         case WM_NCACTIVATE:
             if(wParam == FALSE)
@@ -345,6 +350,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
                 lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
             }
+        case 1129: /* this somehow triggers network activity in C&C in WCHAT mode */
         case 1139: /* this somehow triggers network activity in RA, investigate */
         case 2024: /* this somehow allows RA edwin to work, investigate */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
