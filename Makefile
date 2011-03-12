@@ -1,6 +1,6 @@
 CC=i586-mingw32msvc-gcc
 WINDRES=i586-mingw32msvc-windres
-CFLAGS=-DHAVE_LIBPNG -Iinclude -Wall -Wl,--enable-stdcall-fixup -Os -s
+CFLAGS=-DHAVE_LIBPNG -Iinclude -Wall -Wl,--enable-stdcall-fixup -O3 -s
 LIBS=lib/libpng14.a lib/libz.a -lgdi32 -lopengl32
 REV=$(shell sh -c 'git rev-parse --short @{0}')
 
