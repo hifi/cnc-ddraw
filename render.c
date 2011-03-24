@@ -25,8 +25,8 @@ DWORD WINAPI render_main(void)
     int i,j;
     HGLRC hRC;
 
-    int tex_width = 1024;
-    int tex_height = 1024;
+    int tex_width = ddraw->render.width > 1024 ? ddraw->render.width : 1024;
+    int tex_height = ddraw->render.height > 1024 ? ddraw->render.height : 1024;
     float scale_w = 1.0f;
     float scale_h = 1.0f;
     int *tex = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, tex_width * tex_height * sizeof(int));
