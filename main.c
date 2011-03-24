@@ -171,11 +171,6 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 {
     printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
 
-    if(This->render.run)
-    {
-        return DD_OK;
-    }
-
     This->render.run = TRUE;
 
     /* currently we only support 8 bit modes */
@@ -248,7 +243,10 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
         }
     }
 
-    This->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)render_main, NULL, 0, NULL);
+    if(This->render.thread == NULL)
+    {
+        This->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)render_main, NULL, 0, NULL);
+    }
 
     return DD_OK;
 }
