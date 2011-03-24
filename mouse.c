@@ -59,15 +59,15 @@ BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
 
         if(ddraw->cursor.x < 0) ddraw->cursor.x = 0;
         if(ddraw->cursor.y < 0) ddraw->cursor.y = 0;
-        if(ddraw->cursor.x > ddraw->width-1) ddraw->cursor.x = ddraw->width-1;
+        if(ddraw->cursor.x > ddraw->cursorclip.width-1) ddraw->cursor.x = ddraw->cursorclip.width-1;
 
-        if(real_height)
+        if(real_height > 0 && real_height < ddraw->cursorclip.height)
         {
             if(ddraw->cursor.y > real_height-1) ddraw->cursor.y = real_height-1;
         }
         else
         {
-            if(ddraw->cursor.y > ddraw->height-1) ddraw->cursor.y = ddraw->height-1;
+            if(ddraw->cursor.y > ddraw->cursorclip.height-1) ddraw->cursor.y = ddraw->cursorclip.height-1;
         }
 
         if(pt.x != ddraw->center.x || pt.y != ddraw->center.y)

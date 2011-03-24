@@ -70,7 +70,7 @@ typedef struct IDirectDrawImpl
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);
     struct { float x; float y; } cursor;
     POINT center;
-    RECT cursorclip;
+    struct { int width; int height; } cursorclip;
     BOOL locked;
     BOOL adjmouse;
     BOOL mhack;

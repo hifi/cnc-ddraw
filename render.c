@@ -102,6 +102,24 @@ DWORD WINAPI render_main(void)
             {
                 scale_w *= 640.0f / ddraw->width;
                 scale_h *= 400.0f / ddraw->height;
+
+                if (ddraw->cursorclip.width != 640 || ddraw->cursorclip.height != 400)
+                {
+                    ddraw->cursorclip.width = 640;
+                    ddraw->cursorclip.height = 400;
+                    ddraw->cursor.x = 320;
+                    ddraw->cursor.y = 200;
+                }
+            }
+            else
+            {
+                if (ddraw->cursorclip.width != ddraw->width || ddraw->cursorclip.height != ddraw->height)
+                {
+                    ddraw->cursorclip.width = ddraw->width;
+                    ddraw->cursorclip.height = ddraw->height;
+                    ddraw->cursor.x = ddraw->width / 2;
+                    ddraw->cursor.y = ddraw->height / 2;
+                }
             }
 
             for(i=0; i<ddraw->height; i++)
