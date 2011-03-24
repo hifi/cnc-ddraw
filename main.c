@@ -405,6 +405,14 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
 
     GetWindowText(This->hWnd, (LPTSTR)&This->title, sizeof(This->title));
 
+    if(This->vhack == 1)
+    {
+        if (strcmp(This->title, "Command & Conquer"))
+        {
+            This->vhack = 0;
+        }
+    }
+
     return DD_OK;
 }
 
@@ -589,6 +597,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "sensitivity=0.0\n"
             "; enable C&C/RA mouse hack\n"
             "mhack=true\n"
+            "; enable C&C video resize hack, auto = auto-detect game, true = forced, false = disabled\n"
+            "vhack=auto\n"
         , fh);
         fclose(fh);
     }
@@ -674,6 +684,20 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
 
     GetPrivateProfileStringA("ddraw", "sensitivity", "0", tmp, sizeof(tmp), ini_path);
     This->sensitivity = strtof(tmp, NULL);
+
+    GetPrivateProfileStringA("ddraw", "vhack", "auto", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    {
+        This->vhack = 2;
+    }
+    else if(tolower(tmp[0]) == 'a')
+    {
+        This->vhack = 1;
+    }
+    else
+    {
+        This->vhack = 0;
+    }
 
     return DD_OK;
 }

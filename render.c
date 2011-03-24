@@ -20,6 +20,8 @@
 #include "main.h"
 #include "surface.h"
 
+BOOL detect_cutscene();
+
 DWORD WINAPI render_main(void)
 {
     int i,j;
@@ -96,6 +98,12 @@ DWORD WINAPI render_main(void)
         EnterCriticalSection(&ddraw->cs);
         if(ddraw->primary && ddraw->primary->palette)
         {
+            if(ddraw->vhack && detect_cutscene())
+            {
+                scale_w *= 640.0f / ddraw->width;
+                scale_h *= 400.0f / ddraw->height;
+            }
+
             for(i=0; i<ddraw->height; i++)
             {
                 for(j=0; j<ddraw->width; j++)
@@ -136,4 +144,17 @@ DWORD WINAPI render_main(void)
     wglDeleteContext(hRC);
 
     return 0;
+}
+
+static unsigned char getPixel(int x, int y)
+{
+    return ((unsigned char *)ddraw->primary->surface)[y*ddraw->primary->lPitch + x*ddraw->primary->lXPitch];
+}
+
+BOOL detect_cutscene()
+{
+    if(ddraw->width <= 640 || ddraw->height <= 480)
+        return FALSE;
+
+    return getPixel(641, 0) == 0 || getPixel(645, 1) == 0 ? TRUE : FALSE;
 }
