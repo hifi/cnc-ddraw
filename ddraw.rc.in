@@ -8,7 +8,7 @@
             VALUE "FileDescription", "DirectDraw replacement for C&C95 and Red Alert"
             VALUE "FileVersion", "git~__REV__"
             VALUE "InternalName", "ddraw"
-            VALUE "LegalCopyright", "Copyright (c) 2010 Toni Spets"
+            VALUE "LegalCopyright", "Copyright (c) 2010, 2011 Toni Spets"
             VALUE "LegalTrademarks", ""
             VALUE "OriginalFileName", "ddraw.dll"
             VALUE "ProductName", "DirectDraw replacement for C&C95 and Red Alert"
