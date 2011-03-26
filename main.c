@@ -330,15 +330,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_MBUTTONDBLCLK:
         case WM_LBUTTONDBLCLK:
         case WM_RBUTTONDBLCLK:
-        case WM_NCLBUTTONDOWN:
-        case WM_NCRBUTTONDOWN:
-        case WM_NCLBUTTONUP:
-        case WM_NCRBUTTONUP:
-        case WM_NCMBUTTONDOWN:
-        case WM_NCMBUTTONUP:
-        case WM_NCMBUTTONDBLCLK:
-        case WM_NCLBUTTONDBLCLK:
-        case WM_NCRBUTTONDBLCLK:
             if(ddraw->mhack)
             {
                 if(!ddraw->locked)
