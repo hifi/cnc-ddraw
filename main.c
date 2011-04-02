@@ -323,9 +323,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_SYSKEYUP:
         case WM_CHAR: /* for StarCraft and general support */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+        case WM_LBUTTONUP:
+            if (ddraw->mhack && !ddraw->locked)
+            {
+                mouse_lock();
+                return 0;
+            }
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
-        case WM_LBUTTONUP:
         case WM_RBUTTONUP:
         /* rest for StarCraft and general support */
         case WM_MBUTTONDOWN:
@@ -335,11 +340,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_RBUTTONDBLCLK:
             if(ddraw->mhack)
             {
-                if(!ddraw->locked)
-                {
-                    mouse_lock();
-                    return 0;
-                }
                 lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
             }
         case 1129: /* this somehow triggers network activity in C&C in WCHAT mode */
