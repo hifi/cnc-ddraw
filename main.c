@@ -38,6 +38,7 @@ BOOL screenshot(struct IDirectDrawSurfaceImpl *);
 IDirectDrawImpl *ddraw = NULL;
 
 DWORD WINAPI render_main(void);
+DWORD WINAPI render_soft_main(void);
 
 HRESULT __stdcall ddraw_Compact(IDirectDrawImpl *This)
 {
@@ -247,7 +248,7 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
     if(This->render.thread == NULL)
     {
-        This->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)render_main, NULL, 0, NULL);
+        This->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)This->renderer, NULL, 0, NULL);
     }
 
     return DD_OK;
@@ -389,7 +390,7 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
         memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
         pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
         pfd.nVersion = 1;
-        pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+        pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER | (This->renderer == render_main ? PFD_SUPPORT_OPENGL : 0);
         pfd.iPixelType = PFD_TYPE_RGBA;
         pfd.cColorBits = ddraw->render.bpp ? ddraw->render.bpp : ddraw->mode.dmBitsPerPel;
         pfd.iLayerType = PFD_MAIN_PLANE;
@@ -690,6 +691,18 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     else
     {
         This->vhack = 0;
+    }
+
+    GetPrivateProfileStringA("ddraw", "renderer", "opengl", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 's' || tolower(tmp[0]) == 'g')
+    {
+        printf("DirectDrawCreate: Using software renderer\n");
+        This->renderer = render_soft_main;
+    }
+    else
+    {
+        printf("DirectDrawCreate: Using OpenGL renderer\n");
+        This->renderer = render_main;
     }
 
     return DD_OK;

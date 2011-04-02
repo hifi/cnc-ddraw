@@ -7,7 +7,7 @@ REV=$(shell sh -c 'git rev-parse --short @{0}')
 all:
 	sed 's/__REV__/$(REV)/g' ddraw.rc.in > ddraw.rc
 	$(WINDRES) -J rc ddraw.rc ddraw.rc.o
-	$(CC) $(CFLAGS) -shared -o ddraw.dll main.c mouse.c palette.c surface.c clipper.c render.c screenshot.c ddraw.def ddraw.rc.o $(LIBS)
+	$(CC) $(CFLAGS) -shared -o ddraw.dll main.c mouse.c palette.c surface.c clipper.c render.c render_soft.c screenshot.c ddraw.def ddraw.rc.o $(LIBS)
 
 clean:
 	rm -f ddraw.dll

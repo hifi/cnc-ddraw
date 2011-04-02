@@ -78,6 +78,7 @@ typedef struct IDirectDrawImpl
     BOOL vsync;
     float sensitivity;
     BOOL vhack;
+    DWORD WINAPI (*renderer)(void);
 
 } IDirectDrawImpl;
 
