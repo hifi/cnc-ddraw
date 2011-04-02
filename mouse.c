@@ -218,8 +218,8 @@ void mouse_unlock()
         ddraw->locked = FALSE;
     }
 
-    ddraw->cursor.x = ddraw->width / 2;
-    ddraw->cursor.y = ddraw->height / 2;
+    ddraw->cursor.x = ddraw->cursorclip.width / 2;
+    ddraw->cursor.y = ddraw->cursorclip.height / 2;
 }
 
 void mouse_init(HWND hWnd)
