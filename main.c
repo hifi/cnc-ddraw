@@ -191,6 +191,8 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     This->width = width;
     This->height = height;
     This->bpp = bpp;
+    This->cursorclip.width = width;
+    This->cursorclip.height = height;
 
     if(This->render.width < This->width)
     {
