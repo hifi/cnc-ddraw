@@ -35,7 +35,13 @@ HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD d
     for(i=0;i<256;i++)
     {
         This->data_bgr[i] = (lpEntries[i].peBlue<<16)|(lpEntries[i].peGreen<<8)|lpEntries[i].peRed;
-        This->data_rgb[i] = (lpEntries[i].peRed<<16)|(lpEntries[i].peGreen<<8)|(lpEntries[i].peBlue);
+        if (This->data_rgb)
+        {
+            This->data_rgb[i].rgbRed = lpEntries[i].peRed;
+            This->data_rgb[i].rgbGreen = lpEntries[i].peGreen;
+            This->data_rgb[i].rgbBlue = lpEntries[i].peBlue;
+            This->data_rgb[i].rgbReserved = 0;
+        }
     }
 
     return DD_OK;
@@ -104,6 +110,8 @@ HRESULT __stdcall ddraw_CreatePalette(IDirectDrawImpl *This, DWORD dwFlags, LPPA
     Palette->lpVtbl = &piface;
     printf(" Palette = %p\n", Palette);
     *lpDDPalette = (LPDIRECTDRAWPALETTE)Palette;
+
+    Palette->data_rgb = NULL;
 
     ddraw_palette_SetEntries(Palette, dwFlags, 0, 256, lpDDColorArray);
 
