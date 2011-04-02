@@ -20,6 +20,9 @@
 #include "main.h"
 #include "surface.h"
 
+#define CUTSCENE_WIDTH 640
+#define CUTSCENE_HEIGHT 400
+
 BOOL detect_cutscene();
 
 DWORD WINAPI render_main(void)
@@ -100,15 +103,15 @@ DWORD WINAPI render_main(void)
         {
             if(ddraw->vhack && detect_cutscene())
             {
-                scale_w *= 640.0f / ddraw->width;
-                scale_h *= 400.0f / ddraw->height;
+                scale_w *= (float)CUTSCENE_WIDTH / ddraw->width;
+                scale_h *= (float)CUTSCENE_HEIGHT / ddraw->height;
 
-                if (ddraw->cursorclip.width != 640 || ddraw->cursorclip.height != 400)
+                if (ddraw->cursorclip.width != CUTSCENE_WIDTH || ddraw->cursorclip.height != CUTSCENE_HEIGHT)
                 {
-                    ddraw->cursorclip.width = 640;
-                    ddraw->cursorclip.height = 400;
-                    ddraw->cursor.x = 320;
-                    ddraw->cursor.y = 200;
+                    ddraw->cursorclip.width = CUTSCENE_WIDTH;
+                    ddraw->cursorclip.height = CUTSCENE_HEIGHT;
+                    ddraw->cursor.x = CUTSCENE_WIDTH / 2;
+                    ddraw->cursor.y = CUTSCENE_HEIGHT / 2;
                 }
             }
             else
@@ -171,8 +174,8 @@ static unsigned char getPixel(int x, int y)
 
 BOOL detect_cutscene()
 {
-    if(ddraw->width <= 640 || ddraw->height <= 480)
+    if(ddraw->width <= CUTSCENE_WIDTH || ddraw->height <= CUTSCENE_HEIGHT)
         return FALSE;
 
-    return getPixel(641, 0) == 0 || getPixel(645, 1) == 0 ? TRUE : FALSE;
+    return getPixel(CUTSCENE_WIDTH + 1, 0) == 0 || getPixel(CUTSCENE_WIDTH + 5, 1) == 0 ? TRUE : FALSE;
 }
