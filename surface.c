@@ -290,6 +290,12 @@ HRESULT __stdcall ddraw_surface_Lock(IDirectDrawSurfaceImpl *This, LPRECT lpDest
     lpDDSurfaceDesc->dwFlags = DDSD_LPSURFACE|DDSD_PITCH;
     lpDDSurfaceDesc->lpSurface = This->surface;
     lpDDSurfaceDesc->lPitch = This->lPitch;
+    lpDDSurfaceDesc->ddpfPixelFormat.dwFlags = DDPF_RGB;
+    lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = This->bpp;
+    /* RGB 555 */
+    lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0x7C00;
+    lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0x03E0;
+    lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0x001F;
 
     return DD_OK;
 }

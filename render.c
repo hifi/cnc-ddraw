@@ -141,7 +141,7 @@ DWORD WINAPI render_main(void)
                 {
                     for(j=0; j<ddraw->width; j++)
                     {
-                        WORD rgb16 = ((WORD *)ddraw->primary->surface)[i*ddraw->primary->lPitch + j];
+                        WORD rgb16 = ((WORD *)ddraw->primary->surface)[i*ddraw->width + j];
                         tex[i*ddraw->width+j] = ((rgb16 & 0x001F) << 3 << 16)|(((rgb16 & 0x03E0) >> 5) << 3 << 8)|(((rgb16 & 0x7C00) >> 10) << 3);
                     }
                 }
