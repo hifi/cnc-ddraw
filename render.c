@@ -92,7 +92,7 @@ DWORD WINAPI render_main(void)
         scale_w = (float)ddraw->width/tex_width;
         scale_h = (float)ddraw->height/tex_height;
 
-        if(ddraw->render.maxfps > 0)
+        if(ddraw->render.maxfps > 0 && !ddraw->render.flip)
         {
             tick_start = GetTickCount();
         }
@@ -160,7 +160,7 @@ DWORD WINAPI render_main(void)
 
         SwapBuffers(ddraw->render.hDC);
 
-        if(ddraw->render.maxfps > 0)
+        if(ddraw->render.maxfps > 0 && !ddraw->render.flip)
         {
             tick_end = GetTickCount();
 
@@ -170,7 +170,15 @@ DWORD WINAPI render_main(void)
             }
         }
 
-        SetEvent(ddraw->render.ev);
+        if (ddraw->render.flip)
+        {
+            WaitForSingleObject(ddraw->render.ev, INFINITE);
+            ResetEvent(ddraw->render.ev);
+        }
+        else
+        {
+            SetEvent(ddraw->render.ev);
+        }
     }
 
     HeapFree(GetProcessHeap(), 0, tex);

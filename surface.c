@@ -93,7 +93,7 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
     }
 #endif
 
-    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
+    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run && !ddraw->render.flip)
     {
         WaitForSingleObject(ddraw->render.ev, INFINITE);
         ResetEvent(ddraw->render.ev);
@@ -148,9 +148,18 @@ HRESULT __stdcall ddraw_surface_DeleteAttachedSurface(IDirectDrawSurfaceImpl *Th
     return DD_OK;
 }
 
-HRESULT __stdcall ddraw_surface_EnumAttachedSurfaces(IDirectDrawSurfaceImpl *This, LPVOID a, LPDDENUMSURFACESCALLBACK b)
+HRESULT __stdcall ddraw_surface_GetSurfaceDesc(IDirectDrawSurfaceImpl *, LPDDSURFACEDESC);
+
+HRESULT __stdcall ddraw_surface_EnumAttachedSurfaces(IDirectDrawSurfaceImpl *This, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
 {
-    printf("IDirectDrawSurface::EnumAttachedSurfaces(This=%p, ...)\n", This);
+    printf("IDirectDrawSurface::EnumAttachedSurfaces(This=%p, lpContest=%p, lpEnumSurfacesCallback=%p)\n", This, lpContext, lpEnumSurfacesCallback);
+
+    /* this is not actually complete, but Carmageddon seems to call EnumAttachedSurfaces instead of GetSurfaceDesc to get the main surface description */
+    LPDDSURFACEDESC lpDDSurfaceDesc = malloc(sizeof(DDSURFACEDESC));
+    ddraw_surface_GetSurfaceDesc(This, lpDDSurfaceDesc);
+    free(lpDDSurfaceDesc);
+    lpEnumSurfacesCallback((LPDIRECTDRAWSURFACE)This, lpDDSurfaceDesc, lpContext);
+
     return DD_OK;
 }
 
@@ -162,7 +171,21 @@ HRESULT __stdcall ddraw_surface_EnumOverlayZOrders(IDirectDrawSurfaceImpl *This,
 
 HRESULT __stdcall ddraw_surface_Flip(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWSURFACE a, DWORD b)
 {
-    printf("IDirectDrawSurface::Flip(This=%p, ...)\n", This);
+#if _DEBUG
+    printf("DirectDrawSurface::Flip(This=%p, ...)\n", This);
+#endif
+    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
+    {
+        if (!ddraw->render.flip)
+        {
+            printf("DirectDrawSurface::Flip: Detected sane renderer, honoring flip\n");
+            ddraw->render.flip = TRUE;
+        }
+        else
+        {
+            SetEvent(ddraw->render.ev);
+        }
+    }
     return DD_OK;
 }
 
@@ -255,7 +278,9 @@ HRESULT __stdcall ddraw_surface_Initialize(IDirectDrawSurfaceImpl *This, LPDIREC
 
 HRESULT __stdcall ddraw_surface_IsLost(IDirectDrawSurfaceImpl *This)
 {
+#if _DEBUG
     printf("IDirectDrawSurface::IsLost(This=%p)\n", This);
+#endif
     return DD_OK;
 }
 

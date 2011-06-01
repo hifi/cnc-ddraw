@@ -186,6 +186,7 @@ HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 
     EnterCriticalSection(&This->cs);
     This->render.run = FALSE;
+    SetEvent(ddraw->render.ev); /* make sure it doesn't get stuck if flipping is enabled */
     LeaveCriticalSection(&This->cs);
 
     WaitForSingleObject(This->render.thread, INFINITE);

@@ -61,6 +61,7 @@ typedef struct IDirectDrawImpl
 
         HANDLE thread;
         BOOL run;
+        BOOL flip;
         HANDLE ev;
         DEVMODE mode;
 
