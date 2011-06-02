@@ -184,6 +184,8 @@ HRESULT __stdcall ddraw_surface_Flip(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWS
         else
         {
             SetEvent(ddraw->render.ev);
+            /* sync to around 60 fps */
+            Sleep(16);
         }
     }
     return DD_OK;
