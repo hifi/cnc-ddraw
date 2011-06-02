@@ -172,6 +172,7 @@ DWORD WINAPI render_main(void)
 
         if (ddraw->render.flip)
         {
+            SetEvent(ddraw->render.flip);
             WaitForSingleObject(ddraw->render.ev, INFINITE);
             ResetEvent(ddraw->render.ev);
         }

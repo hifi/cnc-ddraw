@@ -174,7 +174,7 @@ HRESULT __stdcall ddraw_surface_Flip(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWS
 #if _DEBUG
     printf("DirectDrawSurface::Flip(This=%p, ...)\n", This);
 #endif
-    DWORD frame_len = 1000.0f / 60;
+    DWORD frame_len = ddraw->render.fliprate > 0 ? 1000.0f / ddraw->render.fliprate : 1000.0f / 60;
     DWORD tick_end = GetTickCount();
     static DWORD tick_start = 0;
     if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
@@ -182,11 +182,13 @@ HRESULT __stdcall ddraw_surface_Flip(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWS
         if (!ddraw->render.flip)
         {
             printf("DirectDrawSurface::Flip: Detected sane renderer, honoring flip\n");
-            ddraw->render.flip = TRUE;
+            ddraw->render.flip = CreateEvent(NULL, TRUE, FALSE, NULL);
         }
         else
         {
+            ResetEvent(ddraw->render.flip);
             SetEvent(ddraw->render.ev);
+            WaitForSingleObject(ddraw->render.flip, INFINITE);
 
             tick_end = GetTickCount();
             if(tick_end - tick_start < frame_len)

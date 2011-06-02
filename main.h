@@ -51,6 +51,7 @@ typedef struct IDirectDrawImpl
     struct
     {
         int maxfps;
+        int fliprate;
         int width;
         int height;
         int bpp;
@@ -61,7 +62,7 @@ typedef struct IDirectDrawImpl
 
         HANDLE thread;
         BOOL run;
-        BOOL flip;
+        HANDLE flip;
         HANDLE ev;
         DEVMODE mode;
 

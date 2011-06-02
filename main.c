@@ -497,6 +497,12 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
             ddraw->render.ev = NULL;
         }
 
+        if (This->render.flip)
+        {
+            CloseHandle(This->render.flip);
+            ddraw->render.flip = NULL;
+        }
+
         if(This->real_dll)
         {
             FreeLibrary(This->real_dll);
@@ -614,6 +620,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "windowed=true\n"
             "; real rendering rate, -1 = screen rate, 0 = unlimited, n = cap\n"
             "maxfps=120\n"
+            "; buffer flip fps, Carmageddon's timer depends on this (emulating slower hardware)\n"
+            "fliprate=60\n"
             "; vertical synchronization, enable if you get tearing\n"
             "vsync=false\n"
             "; scaling filter, nearest = sharp, linear = smooth\n"
@@ -641,6 +649,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     This->render.maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 120, ini_path);
+    This->render.fliprate = GetPrivateProfileIntA("ddraw", "fliprate", 60, ini_path);
     This->render.width = GetPrivateProfileIntA("ddraw", "width", 640, ini_path);
     if(This->render.width < 640)
     {
