@@ -174,7 +174,7 @@ HRESULT __stdcall ddraw_surface_Flip(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWS
 #if _DEBUG
     printf("DirectDrawSurface::Flip(This=%p, ...)\n", This);
 #endif
-    DWORD frame_len = ddraw->render.fliprate > 0 ? 1000.0f / ddraw->render.fliprate : 1000.0f / 60;
+    DWORD frame_len = ddraw->render.maxfps > 0 ? 1000.0f / ddraw->render.maxfps : 1000.0f / 60;
     DWORD tick_end = GetTickCount();
     static DWORD tick_start = 0;
     if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)

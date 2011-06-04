@@ -51,7 +51,6 @@ typedef struct IDirectDrawImpl
     struct
     {
         int maxfps;
-        int fliprate;
         int width;
         int height;
         int bpp;
