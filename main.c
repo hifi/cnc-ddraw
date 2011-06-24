@@ -27,18 +27,10 @@
 /* from mouse.c */
 BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint);
 void mouse_init(HWND);
-void mouse_lock();
-void mouse_unlock();
 
-/* from screenshot.c */
-#ifdef HAVE_LIBPNG
-BOOL screenshot(struct IDirectDrawSurfaceImpl *);
-#endif
+int SDL_Main(IDirectDrawImpl *ddraw);
 
 IDirectDrawImpl *ddraw = NULL;
-
-DWORD WINAPI render_main(void);
-DWORD WINAPI render_soft_main(void);
 
 HRESULT __stdcall ddraw_Compact(IDirectDrawImpl *This)
 {
@@ -147,24 +139,6 @@ HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 {
     printf("DirectDraw::RestoreDisplayMode(This=%p)\n", This);
 
-    if(!This->render.run)
-    {
-        return DD_OK;
-    }
-
-    EnterCriticalSection(&This->cs);
-    This->render.run = FALSE;
-    LeaveCriticalSection(&This->cs);
-
-    WaitForSingleObject(This->render.thread, INFINITE);
-    This->render.thread = NULL;
-
-    if(!ddraw->windowed)
-    {
-        This->mode.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFLAGS|DM_DISPLAYFREQUENCY|DM_POSITION;
-        ChangeDisplaySettings(&This->mode, 0);
-    }
-
     return DD_OK;
 }
 
@@ -172,86 +146,31 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 {
     printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
 
-    This->render.run = TRUE;
-
-    /* currently we only support 8 bit modes */
-    if(bpp != 8)
-    {
-        return DDERR_INVALIDMODE;
-    }
-
-    This->mode.dmSize = sizeof(DEVMODE);
-    This->mode.dmDriverExtra = 0;
-
-    if(EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &This->mode) == FALSE)
-    {
-        /* not expected */
-        return DDERR_UNSUPPORTED;
-    }
-
     This->width = width;
     This->height = height;
     This->bpp = bpp;
-    This->cursorclip.width = width;
-    This->cursorclip.height = height;
 
-    if(This->render.width < This->width)
+    if (SDL_VideoModeOK(width, height, 16, SDL_HWSURFACE))
     {
-        This->render.width = This->width;
-    }
-    if(This->render.height < This->height)
-    {
-        This->render.height = This->height;
+        printf("Video mode is ok, starting main!\n");
+        SDL_CreateThread(SDL_Main, This);
+        return DD_OK;
     }
 
-    mouse_unlock();
+    printf("returning invalidmode\n");
+    return DDERR_INVALIDMODE;
+}
 
-    if(This->windowed)
+LRESULT CALLBACK NULL_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    switch(uMsg)
     {
-        if(!This->windowed_init)
-        {
-            SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER | WS_SYSMENU | WS_MINIMIZEBOX);
-
-            /* center the window with correct dimensions */
-            int x = (This->mode.dmPelsWidth / 2) - (This->render.width / 2);
-            int y = (This->mode.dmPelsHeight / 2) - (This->render.height / 2);
-            RECT dst = { x, y, This->render.width+x, This->render.height+y };
-            AdjustWindowRect(&dst, GetWindowLong(This->hWnd, GWL_STYLE), FALSE);
-            SetWindowPos(This->hWnd, HWND_NOTOPMOST, dst.left, dst.top, (dst.right - dst.left), (dst.bottom - dst.top), SWP_SHOWWINDOW);
-
-            This->windowed_init = TRUE;
-        }
+        case 1129: /* this somehow triggers network activity in C&C in WCHAT mode */
+        case 1139: /* this somehow triggers network activity in RA, investigate */
+        case 2024: /* this somehow allows RA edwin to work, investigate */
+            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
     }
-    else
-    {
-        SetWindowPos(This->hWnd, HWND_TOPMOST, 0, 0, This->render.width, This->render.height, SWP_SHOWWINDOW);
-
-        mouse_lock();
-
-        memset(&This->render.mode, 0, sizeof(DEVMODE));
-        This->render.mode.dmSize = sizeof(DEVMODE);
-        This->render.mode.dmFields = DM_PELSWIDTH|DM_PELSHEIGHT;
-        This->render.mode.dmPelsWidth = This->render.width;
-        This->render.mode.dmPelsHeight = This->render.height;
-        if(This->render.bpp)
-        {
-            This->render.mode.dmFields |= DM_BITSPERPEL;
-            This->render.mode.dmBitsPerPel = This->render.bpp;
-        }
-
-        if(!This->devmode && ChangeDisplaySettings(&This->render.mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
-        {
-            This->render.run = FALSE;
-            return DDERR_INVALIDMODE;
-        }
-    }
-
-    if(This->render.thread == NULL)
-    {
-        This->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)This->renderer, NULL, 0, NULL);
-    }
-
-    return DD_OK;
+    return TRUE;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -286,7 +205,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_NCACTIVATE:
             if(wParam == FALSE)
             {
-                mouse_unlock();
+                //mouse_unlock();
             }
 
             if(!ddraw->windowed)
@@ -306,18 +225,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 if(GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState(VK_TAB) & 0x8000)
                 {
-                    mouse_unlock();
+                    //mouse_unlock();
                 }
             }
-#ifdef HAVE_LIBPNG
-            if(wParam == VK_CONTROL || wParam == 0x53 /* S */)
-            {
-                if(GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState(0x53) & 0x8000)
-                {
-                    screenshot(ddraw->primary);
-                }
-            }
-#endif
         case WM_KEYUP:
         case WM_SYSKEYDOWN:
         case WM_SYSKEYUP:
@@ -326,7 +236,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_LBUTTONUP:
             if (ddraw->mhack && !ddraw->locked)
             {
-                mouse_lock();
+                //mouse_lock();
                 return 0;
             }
         case WM_LBUTTONDOWN:
@@ -363,8 +273,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DWORD dwFlags)
 {
-    PIXELFORMATDESCRIPTOR pfd;
-
     printf("DirectDraw::SetCooperativeLevel(This=%p, hWnd=0x%08X, dwFlags=0x%08X)\n", This, (unsigned int)hWnd, (unsigned int)dwFlags);
 
     /* Red Alert for some weird reason does this on Windows XP */
@@ -378,34 +286,8 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
     mouse_init(hWnd);
 
     This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
-    if(!This->devmode)
-    {
-        SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
-    }
-
-    if(!This->render.hDC)
-    {
-        This->render.hDC = GetDC(This->hWnd);
-
-        memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
-        pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-        pfd.nVersion = 1;
-        pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER | (This->renderer == render_main ? PFD_SUPPORT_OPENGL : 0);
-        pfd.iPixelType = PFD_TYPE_RGBA;
-        pfd.cColorBits = ddraw->render.bpp ? ddraw->render.bpp : ddraw->mode.dmBitsPerPel;
-        pfd.iLayerType = PFD_MAIN_PLANE;
-        SetPixelFormat( This->render.hDC, ChoosePixelFormat( This->render.hDC, &pfd ), &pfd );
-    }
-
-    GetWindowText(This->hWnd, (LPTSTR)&This->title, sizeof(This->title));
-
-    if(This->vhack == 1)
-    {
-        if (strcmp(This->title, "Command & Conquer"))
-        {
-            This->vhack = 0;
-        }
-    }
+    SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)NULL_WndProc);
+    ShowWindow(hWnd, SW_HIDE);
 
     return DD_OK;
 }
@@ -441,35 +323,12 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 
     if(This->Ref == 0)
     {
-        if(This->render.run)
-        {
-            EnterCriticalSection(&This->cs);
-
-            This->render.run = FALSE;
-            WaitForSingleObject(This->render.thread, INFINITE);
-            This->render.thread = NULL;
-
-            LeaveCriticalSection(&This->cs);
-        }
-
-        if(This->render.hDC)
-        {
-            ReleaseDC(This->hWnd, This->render.hDC);
-            This->render.hDC = NULL;
-        }
-
-        if(This->render.ev)
-        {
-            CloseHandle(This->render.ev);
-            ddraw->render.ev = NULL;
-        }
+        SDL_Quit();
 
         if(This->real_dll)
         {
             FreeLibrary(This->real_dll);
         }
-
-        DeleteCriticalSection(&This->cs);
 
         /* restore old wndproc, subsequent ddraw creation will otherwise fail */
         SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)This->WndProc);
@@ -513,7 +372,7 @@ struct IDirectDrawImplVtbl iface =
 int stdout_open = 0;
 HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter) 
 {
-#if _DEBUG
+#if 0
     if(!stdout_open)
     {
         freopen("stdout.txt", "w", stdout);
@@ -559,8 +418,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         return DDERR_GENERIC;
     }
 
-    InitializeCriticalSection(&This->cs);
-    This->render.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
+    SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER);
 
     /* load configuration options from ddraw.ini */
     char cwd[MAX_PATH];
@@ -574,25 +432,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         FILE *fh = fopen(ini_path, "w");
         fputs(
             "[ddraw]\n"
-            "width=640\n"
-            "height=400\n"
-            "; bits per pixel, possible values: 16, 24 and 32, 0 = auto\n"
-            "bpp=0\n"
             "windowed=true\n"
-            "; real rendering rate, -1 = screen rate, 0 = unlimited, n = cap\n"
-            "maxfps=120\n"
-            "; vertical synchronization, enable if you get tearing\n"
-            "vsync=false\n"
-            "; scaling filter, nearest = sharp, linear = smooth\n"
-            "filter=nearest\n"
-            "; automatic mouse sensitivity scaling\n"
-            "adjmouse=false\n"
-            "; manual sensitivity scaling, 0 = disabled, 0.5 = half, 1.0 = normal\n"
-            "sensitivity=0.0\n"
-            "; enable C&C/RA mouse hack\n"
-            "mhack=true\n"
-            "; enable C&C video resize hack, auto = auto-detect game, true = forced, false = disabled\n"
-            "vhack=auto\n"
+            "fps=120\n"
         , fh);
         fclose(fh);
     }
@@ -605,104 +446,6 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     else
     {
         This->windowed = TRUE;
-    }
-
-    This->render.maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 120, ini_path);
-    This->render.width = GetPrivateProfileIntA("ddraw", "width", 640, ini_path);
-    if(This->render.width < 640)
-    {
-        This->render.width = 640;
-    }
-
-    This->render.height = GetPrivateProfileIntA("ddraw", "height", 400, ini_path);
-    if(This->render.height < 400)
-    {
-        This->render.height = 400;
-    }
-    This->render.bpp = GetPrivateProfileIntA("ddraw", "bpp", 32, ini_path);
-    if(This->render.bpp != 16 && This->render.bpp != 24 && This->render.bpp != 32)
-    {
-        This->render.bpp = 0;
-    }
-
-    GetPrivateProfileStringA("ddraw", "filter", tmp, tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'l' || tolower(tmp[3]) == 'l')
-    {
-        This->render.filter = 1;
-    }
-    else
-    {
-        This->render.filter = 0;
-    }
-
-    GetPrivateProfileStringA("ddraw", "adjmouse", "FALSE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
-    {
-        This->adjmouse = TRUE;
-    }
-    else
-    {
-        This->adjmouse = FALSE;
-    }
-
-    GetPrivateProfileStringA("ddraw", "mhack", "TRUE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
-    {
-        This->mhack = TRUE;
-    }
-    else
-    {
-        This->mhack = FALSE;
-    }
-
-    GetPrivateProfileStringA("ddraw", "devmode", "FALSE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
-    {
-        This->devmode = TRUE;
-        This->mhack = FALSE;
-    }
-    else
-    {
-        This->devmode = FALSE;
-    }
-
-    GetPrivateProfileStringA("ddraw", "vsync", "FALSE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
-    {
-        This->vsync = TRUE;
-    }
-    else
-    {
-        This->vsync = FALSE;
-    }
-
-    GetPrivateProfileStringA("ddraw", "sensitivity", "0", tmp, sizeof(tmp), ini_path);
-    This->sensitivity = strtof(tmp, NULL);
-
-    GetPrivateProfileStringA("ddraw", "vhack", "auto", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
-    {
-        This->vhack = 2;
-    }
-    else if(tolower(tmp[0]) == 'a')
-    {
-        This->vhack = 1;
-    }
-    else
-    {
-        This->vhack = 0;
-    }
-
-    GetPrivateProfileStringA("ddraw", "renderer", "opengl", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 's' || tolower(tmp[0]) == 'g')
-    {
-        printf("DirectDrawCreate: Using software renderer\n");
-        This->renderer = render_soft_main;
-    }
-    else
-    {
-        printf("DirectDrawCreate: Using OpenGL renderer\n");
-        This->renderer = render_main;
     }
 
     return DD_OK;

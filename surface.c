@@ -44,15 +44,9 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
 
     if(This->Ref == 0)
     {
-        if(This->caps == DDSCAPS_PRIMARYSURFACE)
-        {
-            EnterCriticalSection(&ddraw->cs);
-            ddraw->primary = NULL;
-            LeaveCriticalSection(&ddraw->cs);
-        }
         if(This->surface)
         {
-            HeapFree(GetProcessHeap(), 0, This->surface);
+            SDL_FreeSurface(This->surface);
         }
         if(This->palette)
         {
@@ -93,38 +87,19 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
     }
 #endif
 
-    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
-    {
-        WaitForSingleObject(ddraw->render.ev, INFINITE);
-        ResetEvent(ddraw->render.ev);
-    }
+    SDL_Rect src, dst;
 
-    if(Source)
-    {
-        int dx=0,dy=0; 
-        if (lpDestRect)
-        {
-            dx=lpDestRect->left;
-            dy=lpDestRect->top; 
-        }
-        int x0=0,y0=0,x1=Source->width,y1=Source->height; 
-        if (lpSrcRect)
-        { 
-            x0 = max(x0, lpSrcRect->left); 
-            x1 = min(x1, lpSrcRect->right); 
-            y0 = max(y0, lpSrcRect->top); 
-            y1 = min(y1, lpSrcRect->bottom); 
-        } 
-        unsigned char* to=This->surface + dy*This->width + dx; 
-        unsigned char* from=Source->surface + y0*Source->width + x0; 
-        int s = x1-x0; 
+    src.x = lpSrcRect->left;
+    src.y = lpSrcRect->top;
+    src.w = lpSrcRect->right - lpSrcRect->left;
+    src.h = lpSrcRect->bottom - lpSrcRect->top;
 
-        int y;
-        for(y=y0; y<y1; ++y, to+=This->width, from+=Source->width)
-        { 
-            memcpy(to, from, s); 
-        } 
-    }
+    dst.x = lpDestRect->left;
+    dst.y = lpDestRect->top;
+    dst.w = lpDestRect->right - lpDestRect->left;
+    dst.h = lpDestRect->bottom - lpDestRect->top;
+
+    SDL_BlitSurface(Source->surface, &src, This->surface, &dst);
 
     return DD_OK;
 }
@@ -249,7 +224,7 @@ HRESULT __stdcall ddraw_surface_IsLost(IDirectDrawSurfaceImpl *This)
 
 HRESULT __stdcall ddraw_surface_Lock(IDirectDrawSurfaceImpl *This, LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
 {
-#if _DEBUG
+#if 0
     printf("DirectDrawSurface::Lock(This=%p, lpDestRect=%p, lpDDSurfaceDesc=%p, dwFlags=%d, hEvent=%p)\n", This, lpDestRect, lpDDSurfaceDesc, (int)dwFlags, hEvent);
 
     if(dwFlags & DDLOCK_SURFACEMEMORYPTR)
@@ -274,9 +249,11 @@ HRESULT __stdcall ddraw_surface_Lock(IDirectDrawSurfaceImpl *This, LPRECT lpDest
     }
 #endif
 
+    SDL_LockSurface(This->surface);
+
     lpDDSurfaceDesc->dwSize = sizeof(DDSURFACEDESC);
     lpDDSurfaceDesc->dwFlags = DDSD_LPSURFACE|DDSD_PITCH;
-    lpDDSurfaceDesc->lpSurface = This->surface;
+    lpDDSurfaceDesc->lpSurface = This->surface->pixels;
     lpDDSurfaceDesc->lPitch = This->lPitch;
 
     return DD_OK;
@@ -328,11 +305,13 @@ HRESULT __stdcall ddraw_surface_SetPalette(IDirectDrawSurfaceImpl *This, LPDIREC
     return DD_OK;
 }
 
-HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPVOID lpRect)
+HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPRECT lpRect)
 {
-#if _DEBUG
+#if 0
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
+
+    SDL_UnlockSurface(This->surface);
 
     return DD_OK;
 }
@@ -434,7 +413,8 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
     {
         Surface->lPitch = Surface->width;
         Surface->lXPitch = Surface->bpp / 8;
-        Surface->surface = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, Surface->width * Surface->height * Surface->lXPitch);
+
+        Surface->surface = SDL_CreateRGBSurface(SDL_SWSURFACE|SDL_ASYNCBLIT, Surface->width, Surface->height, This->bpp, 0, 0, 0, 0);
     }
 
     printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);

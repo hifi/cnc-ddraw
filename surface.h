@@ -41,7 +41,7 @@ typedef struct IDirectDrawSurfaceImpl
 
     IDirectDrawPaletteImpl *palette;
 
-    void *surface;
+    SDL_Surface *surface;
     DWORD lPitch;
     DWORD lXPitch;
 
@@ -84,7 +84,7 @@ struct IDirectDrawSurfaceImplVtbl
     HRESULT (__stdcall *SetColorKey)(IDirectDrawSurfaceImpl*, DWORD, LPDDCOLORKEY);
     HRESULT (__stdcall *SetOverlayPosition)(IDirectDrawSurfaceImpl*, LONG, LONG );
     HRESULT (__stdcall *SetPalette)(IDirectDrawSurfaceImpl*, LPDIRECTDRAWPALETTE);
-    HRESULT (__stdcall *Unlock)(IDirectDrawSurfaceImpl*, LPVOID);
+    HRESULT (__stdcall *Unlock)(IDirectDrawSurfaceImpl*, LPRECT);
     HRESULT (__stdcall *UpdateOverlay)(IDirectDrawSurfaceImpl*, LPRECT, LPDIRECTDRAWSURFACE,LPRECT,DWORD, LPDDOVERLAYFX);
     HRESULT (__stdcall *UpdateOverlayDisplay)(IDirectDrawSurfaceImpl*, DWORD);
     HRESULT (__stdcall *UpdateOverlayZOrder)(IDirectDrawSurfaceImpl*, DWORD, LPDIRECTDRAWSURFACE);

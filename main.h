@@ -21,6 +21,7 @@
 #include "ddraw.h"
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include "SDL.h"
 
 struct IDirectDrawImpl;
 struct IDirectDrawImplVtbl;
@@ -47,6 +48,7 @@ typedef struct IDirectDrawImpl
     /* real export from system32\ddraw.dll */
     HRESULT WINAPI (*DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
     CRITICAL_SECTION cs;
+    SDL_Surface *surface;
 
     struct
     {

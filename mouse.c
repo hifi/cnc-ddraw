@@ -23,9 +23,6 @@
 
 #define MAX_HOOKS 16
 
-BOOL mouse_active = FALSE;
-int real_height = 0;
-
 struct hook { char name[32]; void *func; };
 struct hack
 {
@@ -35,47 +32,6 @@ struct hack
 
 BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
 {
-    POINT pt;
-
-    if(mouse_active && ddraw->locked)
-    {
-        GetCursorPos(&pt);
-
-        if(ddraw->sensitivity > 0 && ddraw->sensitivity < 10)
-        {
-            ddraw->cursor.x += (pt.x - ddraw->center.x) * ddraw->sensitivity;
-            ddraw->cursor.y += (pt.y - ddraw->center.y) * ddraw->sensitivity;
-        }
-        else if(ddraw->adjmouse)
-        {
-            ddraw->cursor.x += (pt.x - ddraw->center.x) * ((float)ddraw->width / ddraw->render.width);
-            ddraw->cursor.y += (pt.y - ddraw->center.y) * ((float)ddraw->height / ddraw->render.height);
-        }
-        else
-        {
-            ddraw->cursor.x += pt.x - ddraw->center.x;
-            ddraw->cursor.y += pt.y - ddraw->center.y;
-        }
-
-        if(ddraw->cursor.x < 0) ddraw->cursor.x = 0;
-        if(ddraw->cursor.y < 0) ddraw->cursor.y = 0;
-        if(ddraw->cursor.x > ddraw->cursorclip.width-1) ddraw->cursor.x = ddraw->cursorclip.width-1;
-
-        if(real_height > 0 && real_height < ddraw->cursorclip.height)
-        {
-            if(ddraw->cursor.y > real_height-1) ddraw->cursor.y = real_height-1;
-        }
-        else
-        {
-            if(ddraw->cursor.y > ddraw->cursorclip.height-1) ddraw->cursor.y = ddraw->cursorclip.height-1;
-        }
-
-        if(pt.x != ddraw->center.x || pt.y != ddraw->center.y)
-        {
-            SetCursorPos(ddraw->center.x, ddraw->center.y);
-        }
-    }
-
     lpPoint->x = (int)ddraw->cursor.x;
     lpPoint->y = (int)ddraw->cursor.y;
     return TRUE;
@@ -83,16 +39,12 @@ BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
 
 BOOL WINAPI fake_ClipCursor(const RECT *lpRect)
 {
-    if(lpRect)
-    {
-        /* hack for 640x480 mode */
-        real_height = lpRect->bottom;
-    }
     return TRUE;
 }
 
 int WINAPI fake_ShowCursor(BOOL bShow)
 {
+    SDL_ShowCursor(bShow);
     return TRUE;
 }
 
@@ -165,7 +117,6 @@ void hack_iat(struct hack *hck)
                         thunk.u1.AddressOfData = (DWORD)hk->func;
                         VirtualProtectEx(hProcess, (void *)base+dir->FirstThunk+(sizeof(IMAGE_THUNK_DATA) * i), sizeof(IMAGE_THUNK_DATA), PAGE_EXECUTE_READWRITE, &dwWritten);
                         WriteProcessMemory(hProcess, (void *)base+dir->FirstThunk+(sizeof(IMAGE_THUNK_DATA) * i), &thunk, sizeof(IMAGE_THUNK_DATA), &dwWritten);
-                        mouse_active = TRUE;
                     }
                     hk++;
                 }
@@ -180,53 +131,7 @@ void hack_iat(struct hack *hck)
     CloseHandle(hProcess);
 }
 
-void mouse_lock()
-{
-    RECT rc;
-
-    if(mouse_active && !ddraw->locked)
-    {
-        GetWindowRect(ddraw->hWnd, &rc);
-        
-        ddraw->center.x = (rc.right + rc.left) / 2;
-        ddraw->center.y = (rc.top + rc.bottom) / 2;
-
-        SetCursorPos(ddraw->center.x, ddraw->center.y);
-        SetCapture(ddraw->hWnd);
-        ClipCursor(&rc);
-
-        while(ShowCursor(FALSE) > 0);
-        ddraw->locked = TRUE;
-    }
-}
-
-void mouse_unlock()
-{
-    if(!mouse_active)
-    {
-        return;
-    }
-
-    if(ddraw->locked)
-    {
-        while(ShowCursor(TRUE) < 0);
-        SetCursor(LoadCursor(NULL, IDC_ARROW));
-
-        ClipCursor(NULL);
-        ReleaseCapture();
-
-        ddraw->locked = FALSE;
-    }
-
-    ddraw->cursor.x = ddraw->cursorclip.width / 2;
-    ddraw->cursor.y = ddraw->cursorclip.height / 2;
-}
-
 void mouse_init(HWND hWnd)
 {
-    if(ddraw->mhack)
-    {
-        hack_iat(&hacks[0]);
-        mouse_active = TRUE;
-    }
+    hack_iat(&hacks[0]);
 }

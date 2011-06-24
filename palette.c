@@ -17,6 +17,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include "palette.h"
+#include "surface.h"
 
 HRESULT __stdcall ddraw_palette_GetEntries(IDirectDrawPaletteImpl *This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries)
 {
@@ -26,23 +27,12 @@ HRESULT __stdcall ddraw_palette_GetEntries(IDirectDrawPaletteImpl *This, DWORD d
 
 HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
 {
-    int i;
-
 #if _DEBUG
     printf("DirectDrawPalette::SetEntries(This=%p, dwFlags=%d, dwStartingEntry=%d, dwCount=%d, lpEntries=%p)\n", This, (int)dwFlags, (int)dwStartingEntry, (int)dwCount, lpEntries);
 #endif
 
-    for(i=0;i<256;i++)
-    {
-        This->data_bgr[i] = (lpEntries[i].peBlue<<16)|(lpEntries[i].peGreen<<8)|lpEntries[i].peRed;
-        if (This->data_rgb)
-        {
-            This->data_rgb[i].rgbRed = lpEntries[i].peRed;
-            This->data_rgb[i].rgbGreen = lpEntries[i].peGreen;
-            This->data_rgb[i].rgbBlue = lpEntries[i].peBlue;
-            This->data_rgb[i].rgbReserved = 0;
-        }
-    }
+    if (ddraw->primary && ddraw->primary->surface)
+        SDL_SetPalette(ddraw->primary->surface, SDL_LOGPAL, (SDL_Color *)lpEntries, dwStartingEntry, dwCount);
 
     return DD_OK;
 }
