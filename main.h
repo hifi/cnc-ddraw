@@ -39,48 +39,19 @@ typedef struct IDirectDrawImpl
     DWORD height;
     DWORD bpp;
     BOOL windowed;
-    BOOL windowed_init;
-    DEVMODE mode;
     struct IDirectDrawSurfaceImpl *primary;
     char title[128];
     HMODULE real_dll;
 
     /* real export from system32\ddraw.dll */
     HRESULT WINAPI (*DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
-    CRITICAL_SECTION cs;
     SDL_Surface *surface;
-
-    struct
-    {
-        int maxfps;
-        int width;
-        int height;
-        int bpp;
-        int filter;
-
-        HDC hDC;
-        int *tex;
-
-        HANDLE thread;
-        BOOL run;
-        HANDLE ev;
-        DEVMODE mode;
-
-    } render;
 
     HWND hWnd;
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);
-    struct { float x; float y; } cursor;
-    POINT center;
-    struct { int width; int height; } cursorclip;
-    BOOL locked;
-    BOOL adjmouse;
-    BOOL mhack;
-    BOOL devmode;
-    BOOL vsync;
-    float sensitivity;
-    BOOL vhack;
-    DWORD WINAPI (*renderer)(void);
+    struct { int x; int y; } cursor;
+    BOOL ldown;
+    BOOL rdown;
 
 } IDirectDrawImpl;
 

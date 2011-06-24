@@ -25,7 +25,6 @@
 #include "clipper.h"
 
 /* from mouse.c */
-BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint);
 void mouse_init(HWND);
 
 int SDL_Main(IDirectDrawImpl *ddraw);
@@ -152,12 +151,10 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
     if (SDL_VideoModeOK(width, height, 16, SDL_HWSURFACE))
     {
-        printf("Video mode is ok, starting main!\n");
         SDL_CreateThread(SDL_Main, This);
         return DD_OK;
     }
 
-    printf("returning invalidmode\n");
     return DDERR_INVALIDMODE;
 }
 
@@ -165,110 +162,15 @@ LRESULT CALLBACK NULL_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 {
     switch(uMsg)
     {
+        case WM_DESTROY:
+            SDL_Quit();
+            return TRUE;
         case 1129: /* this somehow triggers network activity in C&C in WCHAT mode */
         case 1139: /* this somehow triggers network activity in RA, investigate */
         case 2024: /* this somehow allows RA edwin to work, investigate */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
     }
     return TRUE;
-}
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    POINT pt;
-
-    switch(uMsg)
-    {
-        case WM_DESTROY:
-            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
-        case WM_SYSCOMMAND:
-            if(wParam == SC_CLOSE)
-            {
-                exit(0);
-            }
-            break;
-        case WM_SIZE:
-            if(wParam == SIZE_RESTORED)
-            {
-                ddraw_SetDisplayMode(ddraw, ddraw->width, ddraw->height, ddraw->bpp);
-            }
-            if(wParam == SIZE_MINIMIZED)
-            {
-                ddraw_RestoreDisplayMode(ddraw);
-            }
-            /* disallow maximize, C&C does that when WCHAT DDE is used */
-            if(wParam == SIZE_MAXIMIZED)
-            {
-                ShowWindow(ddraw->hWnd, SW_RESTORE);
-            }
-            break;
-        case WM_NCACTIVATE:
-            if(wParam == FALSE)
-            {
-                //mouse_unlock();
-            }
-
-            if(!ddraw->windowed)
-            {
-                if(wParam == FALSE)
-                {
-                    ShowWindow(ddraw->hWnd, SW_MINIMIZE);
-                }
-                else
-                {
-                    ShowWindow(ddraw->hWnd, SW_RESTORE);
-                }
-            }
-            break;
-        case WM_KEYDOWN:
-            if(wParam == VK_CONTROL || wParam == VK_TAB)
-            {
-                if(GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState(VK_TAB) & 0x8000)
-                {
-                    //mouse_unlock();
-                }
-            }
-        case WM_KEYUP:
-        case WM_SYSKEYDOWN:
-        case WM_SYSKEYUP:
-        case WM_CHAR: /* for StarCraft and general support */
-            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
-        case WM_LBUTTONUP:
-            if (ddraw->mhack && !ddraw->locked)
-            {
-                //mouse_lock();
-                return 0;
-            }
-        case WM_LBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-        case WM_RBUTTONUP:
-        /* rest for StarCraft and general support */
-        case WM_MBUTTONDOWN:
-        case WM_MBUTTONUP:
-        case WM_MBUTTONDBLCLK:
-        case WM_LBUTTONDBLCLK:
-        case WM_RBUTTONDBLCLK:
-            if(ddraw->mhack)
-            {
-                lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
-            }
-        case 1129: /* this somehow triggers network activity in C&C in WCHAT mode */
-        case 1139: /* this somehow triggers network activity in RA, investigate */
-        case 2024: /* this somehow allows RA edwin to work, investigate */
-            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
-
-        /* for StarCraft and general support */
-        case WM_MOUSEMOVE:
-        case WM_NCMOUSEMOVE:
-            if(ddraw->mhack)
-            {
-                fake_GetCursorPos(&pt);
-                return ddraw->WndProc(hWnd, uMsg, wParam, MAKELPARAM(pt.x, pt.y));
-            }
-            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
-    }
-
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DWORD dwFlags)
@@ -387,11 +289,6 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     {
         /* FIXME: check the calling module before passing the call! */
         return ddraw->DirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
-
-        /*
-        printf(" returning DDERR_DIRECTDRAWALREADYCREATED\n");
-        return DDERR_DIRECTDRAWALREADYCREATED;
-        */
     } 
 
     IDirectDrawImpl *This = (IDirectDrawImpl *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectDrawImpl));

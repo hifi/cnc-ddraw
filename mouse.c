@@ -37,8 +37,31 @@ BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
     return TRUE;
 }
 
+SHORT WINAPI fake_GetAsyncKeyState(int vKey)
+{
+    if (vKey == VK_LBUTTON)
+    {
+        return (SHORT)ddraw->ldown;
+    }
+
+    if (vKey == VK_RBUTTON)
+    {
+        return (SHORT)ddraw->rdown;
+    }
+
+    return 0;
+}
+
 BOOL WINAPI fake_ClipCursor(const RECT *lpRect)
 {
+    if (lpRect)
+    {
+        //SDL_WM_GrabInput(SDL_GRAB_ON);
+    }
+    else
+    {
+        //SDL_WM_GrabInput(SDL_GRAB_OFF);
+    }
     return TRUE;
 }
 
@@ -62,6 +85,7 @@ struct hack hacks[] =
             { "ClipCursor", fake_ClipCursor },
             { "ShowCursor", fake_ShowCursor },
             { "SetCursor", fake_SetCursor } ,
+            { "GetAsyncKeyState", fake_GetAsyncKeyState } ,
             { "", NULL }
         }
     },

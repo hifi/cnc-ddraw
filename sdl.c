@@ -29,12 +29,37 @@ int SDL_Main(IDirectDrawImpl *ddraw)
 
         if (ev.type == SDL_MOUSEBUTTONDOWN)
         {
-            ddraw->WndProc(ddraw->hWnd, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y));
+            ddraw->cursor.x = ev.button.x;
+            ddraw->cursor.y = ev.button.y;
+
+            if (ev.button.button == SDL_BUTTON_LEFT)
+            {
+            SDL_WM_GrabInput(SDL_GRAB_ON);
+                ddraw->ldown = TRUE;
+                ddraw->WndProc(ddraw->hWnd, WM_LBUTTONDOWN, 0, MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y));
+            }
+            if (ev.button.button == SDL_BUTTON_RIGHT)
+            {
+                ddraw->rdown = TRUE;
+                ddraw->WndProc(ddraw->hWnd, WM_RBUTTONDOWN, 0, MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y));
+            }
         }
 
         if (ev.type == SDL_MOUSEBUTTONUP)
         {
-            ddraw->WndProc(ddraw->hWnd, WM_LBUTTONUP, MK_LBUTTON, MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y));
+            ddraw->cursor.x = ev.button.x;
+            ddraw->cursor.y = ev.button.y;
+
+            if (ev.button.button == SDL_BUTTON_LEFT)
+            {
+                ddraw->ldown = FALSE;
+                ddraw->WndProc(ddraw->hWnd, WM_LBUTTONUP, 0, MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y));
+            }
+            if (ev.button.button == SDL_BUTTON_RIGHT)
+            {
+                ddraw->rdown = FALSE;
+                ddraw->WndProc(ddraw->hWnd, WM_RBUTTONUP, 0, MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y));
+            }
         }
 
         if (ev.type == SDL_QUIT)
