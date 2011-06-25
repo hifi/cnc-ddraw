@@ -151,7 +151,7 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
     if (SDL_VideoModeOK(width, height, 16, SDL_HWSURFACE))
     {
-        SDL_CreateThread(SDL_Main, This);
+        SDL_CreateThread((int (*)(void *))SDL_Main, This);
         return DD_OK;
     }
 

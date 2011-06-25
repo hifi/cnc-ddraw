@@ -68,7 +68,7 @@ int SDL_Main(IDirectDrawImpl *ddraw)
     ddraw->surface = SDL_SetVideoMode(ddraw->width, ddraw->height, 16, SDL_HWSURFACE);
     //SDL_WM_GrabInput(SDL_GRAB_ON);
 
-    SDL_AddTimer(1000.0f / 60, SDL_Renderer, NULL);
+    SDL_AddTimer(1000.0f / 60, (SDL_NewTimerCallback)SDL_Renderer, NULL);
 
     while (SDL_WaitEvent(&ev))
     {

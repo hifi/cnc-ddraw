@@ -1,13 +1,19 @@
 CC=i586-mingw32msvc-gcc
 WINDRES=i586-mingw32msvc-windres
-CFLAGS=-Iinclude -Wall -Wl,--enable-stdcall-fixup -O3 -s -Ilibsdl/include/SDL
-LIBS=-lSDL -Llibsdl/lib/
+CFLAGS=-Wall -O3 -s -I./libsdl/include/SDL
+LIBS=-lSDL -L./libsdl/lib/
 REV=$(shell sh -c 'git rev-parse --short @{0}')
+OBJS=main.o sdl.o mouse.o palette.o surface.o clipper.o
 
-all:
+%.o: $*.c *.h
+	$(CC) $(CFLAGS) -c -o $@ $*.c
+
+ddraw: $(OBJS)
 	sed 's/__REV__/$(REV)/g' ddraw.rc.in > ddraw.rc
 	$(WINDRES) -J rc ddraw.rc ddraw.rc.o
-	$(CC) $(CFLAGS) -shared -o ddraw.dll main.c sdl.c mouse.c palette.c surface.c clipper.c ddraw.def ddraw.rc.o $(LIBS)
+	$(CC) $(CFLAGS) -Wl,--enable-stdcall-fixup -shared -o ddraw.dll $(OBJS) ddraw.def ddraw.rc.o $(LIBS)
+
+all: ddraw
 
 clean:
-	rm -f ddraw.dll
+	rm -f *.o ddraw.dll
