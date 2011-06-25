@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Toni Spets <toni.spets@iki.fi>
+ * Copyright (c) 2010, 2011 Toni Spets <toni.spets@iki.fi>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,94 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* This is a special mouse coordinate fix for games that use GetCursorPos and expect to be in fullscreen */
+#include "loader.h"
 
 #include <windows.h>
-#include <stdio.h>
-#include "main.h"
-#include "surface.h"
 
-#define MAX_HOOKS 16
-
-struct hook { char name[32]; void *func; };
-struct hack
-{
-    char name[32];
-    struct hook hooks[MAX_HOOKS];
-};
-
-BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
-{
-    lpPoint->x = (int)ddraw->cursor.x;
-    lpPoint->y = (int)ddraw->cursor.y;
-    return TRUE;
-}
-
-SHORT WINAPI fake_GetAsyncKeyState(int vKey)
-{
-    if (vKey == VK_LBUTTON)
-    {
-        return (SHORT)ddraw->ldown;
-    }
-
-    if (vKey == VK_RBUTTON)
-    {
-        return (SHORT)ddraw->rdown;
-    }
-
-    return 0;
-}
-
-BOOL WINAPI fake_ClipCursor(const RECT *lpRect)
-{
-    if (lpRect)
-    {
-        //SDL_WM_GrabInput(SDL_GRAB_ON);
-    }
-    else
-    {
-        //SDL_WM_GrabInput(SDL_GRAB_OFF);
-    }
-    return TRUE;
-}
-
-int WINAPI fake_ShowCursor(BOOL bShow)
-{
-    SDL_ShowCursor(bShow);
-    return TRUE;
-}
-
-HCURSOR WINAPI fake_SetCursor(HCURSOR hCursor)
-{
-    return NULL;
-}
-
-struct hack hacks[] =
-{
-    {
-        "user32.dll",
-        {
-            { "GetCursorPos", fake_GetCursorPos },
-            { "ClipCursor", fake_ClipCursor },
-            { "ShowCursor", fake_ShowCursor },
-            { "SetCursor", fake_SetCursor } ,
-            { "GetAsyncKeyState", fake_GetAsyncKeyState } ,
-            { "", NULL }
-        }
-    },
-    {
-        "",
-        {
-            { "", NULL }
-        }
-    }
-};
-
-void hack_iat(struct hack *hck)
+void loader(struct iat_table *hck)
 {
     int i;
     char buf[32];
-    struct hook *hk;
+    struct iat_hook *hk;
     DWORD dwWritten;
     IMAGE_DOS_HEADER dos_hdr;
     IMAGE_NT_HEADERS nt_hdr;
@@ -134,7 +55,7 @@ void hack_iat(struct hack *hck)
                 hk = &hck->hooks[0];
                 while(hk->func)
                 {
-                    if(stricmp(hk->name, buf) == 0)
+                    if ((*ptmp & 0x80000000 && (*ptmp & ~0x80000000) == hk->ord) || (hk->ord == 0 && stricmp(hk->name, buf) == 0))
                     {
                         thunk.u1.Function = (DWORD)hk->func;
                         thunk.u1.Ordinal = (DWORD)hk->func;
@@ -153,9 +74,4 @@ void hack_iat(struct hack *hck)
     }
 
     CloseHandle(hProcess);
-}
-
-void mouse_init(HWND hWnd)
-{
-    hack_iat(&hacks[0]);
 }

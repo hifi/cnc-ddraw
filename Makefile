@@ -3,7 +3,7 @@ WINDRES=i586-mingw32msvc-windres
 CFLAGS=-Wall -O3 -s -I./libsdl/include/SDL
 LIBS=-lSDL -L./libsdl/lib/
 REV=$(shell sh -c 'git rev-parse --short @{0}')
-OBJS=main.o sdl.o mouse.o palette.o surface.o clipper.o
+OBJS=main.o sdl.o hacks.o loader.o palette.o surface.o clipper.o
 
 %.o: $*.c *.h
 	$(CC) $(CFLAGS) -c -o $@ $*.c

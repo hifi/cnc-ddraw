@@ -24,8 +24,7 @@
 #include "surface.h"
 #include "clipper.h"
 
-/* from mouse.c */
-void mouse_init(HWND);
+void hacks();
 
 int SDL_Main(IDirectDrawImpl *ddraw);
 
@@ -151,7 +150,8 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
     if (SDL_VideoModeOK(width, height, 16, SDL_HWSURFACE))
     {
-        SDL_CreateThread((int (*)(void *))SDL_Main, This);
+        This->running = TRUE;
+        This->thread = SDL_CreateThread((int (*)(void *))SDL_Main, This);
         return DD_OK;
     }
 
@@ -163,14 +163,13 @@ LRESULT CALLBACK NULL_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
     switch(uMsg)
     {
         case WM_DESTROY:
-            SDL_Quit();
-            return TRUE;
+            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
         case 1129: /* this somehow triggers network activity in C&C in WCHAT mode */
         case 1139: /* this somehow triggers network activity in RA, investigate */
         case 2024: /* this somehow allows RA edwin to work, investigate */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
     }
-    return TRUE;
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DWORD dwFlags)
@@ -184,8 +183,6 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
     }
 
     This->hWnd = hWnd;
-
-    mouse_init(hWnd);
 
     This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
     SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)NULL_WndProc);
@@ -225,6 +222,15 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 
     if(This->Ref == 0)
     {
+        if (ddraw->running)
+        {
+            SDL_Event ev;
+            ev.type = SDL_USEREVENT;
+            ddraw->running = FALSE;
+            SDL_PushEvent(&ev);
+            SDL_WaitThread(ddraw->thread, NULL);
+        }
+
         SDL_Quit();
 
         if(This->real_dll)
@@ -284,6 +290,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
 #endif
 
     printf("DirectDrawCreate(lpGUID=%p, lplpDD=%p, pUnkOuter=%p)\n", lpGUID, lplpDD, pUnkOuter);
+
+    hacks();
 
     if(ddraw)
     {

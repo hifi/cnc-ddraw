@@ -1,5 +1,6 @@
 #include "main.h"
 #include "surface.h"
+#include "loader.h"
 
 WPARAM key2win(SDLKey sym)
 {
@@ -64,13 +65,13 @@ int SDL_Renderer(Uint32 interval, void *ptr)
 int SDL_Main(IDirectDrawImpl *ddraw)
 {
     SDL_Event ev;
+    BOOL grabbed = FALSE;
 
     ddraw->surface = SDL_SetVideoMode(ddraw->width, ddraw->height, 16, SDL_HWSURFACE);
-    //SDL_WM_GrabInput(SDL_GRAB_ON);
 
-    SDL_AddTimer(1000.0f / 60, (SDL_NewTimerCallback)SDL_Renderer, NULL);
+    SDL_TimerID timer = SDL_AddTimer(1000.0f / 60, (SDL_NewTimerCallback)SDL_Renderer, NULL);
 
-    while (SDL_WaitEvent(&ev))
+    while (ddraw->running && SDL_WaitEvent(&ev))
     {
         switch (ev.type)
         {
@@ -81,6 +82,11 @@ int SDL_Main(IDirectDrawImpl *ddraw)
 
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
+                if (!grabbed)
+                {
+                    grabbed = SDL_WM_GrabInput(SDL_GRAB_ON);
+                }
+
                 ddraw->cursor.x = ev.button.x;
                 ddraw->cursor.y = ev.button.y;
 
@@ -108,6 +114,8 @@ int SDL_Main(IDirectDrawImpl *ddraw)
                 break;
         }
     }
+
+    SDL_RemoveTimer(timer);
 
     return 0;
 }

@@ -52,6 +52,8 @@ typedef struct IDirectDrawImpl
     struct { int x; int y; } cursor;
     BOOL ldown;
     BOOL rdown;
+    BOOL running;
+    SDL_Thread *thread;
 
 } IDirectDrawImpl;
 
