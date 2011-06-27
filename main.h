@@ -27,6 +27,8 @@ struct IDirectDrawImpl;
 struct IDirectDrawImplVtbl;
 struct IDirectDrawSurfaceImpl;
 
+#define MAX_SURFACES 8
+
 extern struct IDirectDrawImpl *ddraw;
 
 typedef struct IDirectDrawImpl
@@ -56,6 +58,8 @@ typedef struct IDirectDrawImpl
     BOOL running;
     SDL_Thread *thread;
     SDL_sem *event;
+
+    struct IDirectDrawSurfaceImpl *surfaces[MAX_SURFACES];
 
 } IDirectDrawImpl;
 

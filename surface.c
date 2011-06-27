@@ -52,6 +52,12 @@ ULONG __stdcall ddraw_surface_Release(IDirectDrawSurfaceImpl *This)
         {
             IDirectDrawPalette_Release(This->palette);
         }
+
+        int i;
+        for (i=0; i<MAX_SURFACES; i++)
+            if (ddraw->surfaces[i] == This)
+                ddraw->surfaces[i] = NULL;
+
         HeapFree(GetProcessHeap(), 0, This);
         return 0;
     }
@@ -62,6 +68,7 @@ HRESULT __stdcall ddraw_surface_AddAttachedSurface(IDirectDrawSurfaceImpl *This,
 {
     printf("DirectDrawSurface::AddAttachedSurface(This=%p, lpDDSurface=%p)\n", This, lpDDSurface);
     IDirectDrawSurface_AddRef(lpDDSurface);
+
     return DD_OK;
 }
 
@@ -75,7 +82,7 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
 {
     IDirectDrawSurfaceImpl *Source = (IDirectDrawSurfaceImpl *)lpDDSrcSurface;
 
-#if _DEBUG
+#if 1
     printf("DirectDrawSurface::Blt(This=%p, lpDestRect=%p, lpDDSrcSurface=%p, lpSrcRect=%p, dwFlags=%d, lpDDBltFx=%p)\n", This, lpDestRect, lpDDSrcSurface, lpSrcRect, (int)dwFlags, lpDDBltFx);
     if(lpDestRect)
     {
@@ -416,6 +423,7 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
         Surface->lXPitch = Surface->bpp / 8;
 
         Surface->surface = SDL_CreateRGBSurface(SDL_SWSURFACE|SDL_ASYNCBLIT, Surface->width, Surface->height, This->bpp, 0, 0, 0, 0);
+        printf(" SDL surface %p %s locking.\n", Surface->surface, SDL_MUSTLOCK(Surface->surface) ? "requires" : "does not require");
     }
 
     printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);
@@ -424,6 +432,17 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
     Surface->Ref = 0;
     ddraw_surface_AddRef(Surface);
+
+    int i;
+    for (i=0; i<MAX_SURFACES; i++)
+    {
+        if (This->surfaces[i] == NULL)
+        {
+            printf(" referenced in slot %d\n", i);
+            This->surfaces[i] = Surface;
+            break;
+        }
+    }
 
     return DD_OK;
 }

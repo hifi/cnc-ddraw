@@ -31,12 +31,16 @@ HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD d
     printf("DirectDrawPalette::SetEntries(This=%p, dwFlags=%d, dwStartingEntry=%d, dwCount=%d, lpEntries=%p)\n", This, (int)dwFlags, (int)dwStartingEntry, (int)dwCount, lpEntries);
 #endif
 
-    if (ddraw->primary && ddraw->primary->surface)
+    int i;
+    for (i=0; i < MAX_SURFACES; i++)
     {
-        SDL_SetPalette(ddraw->primary->surface, SDL_LOGPAL|SDL_PHYSPAL, (SDL_Color *)lpEntries, dwStartingEntry, dwCount);
-        if (ddraw->event)
+        if (ddraw->surfaces[i] /*&& ddraw->surfaces[i]->palette == This*/)
         {
-            SDL_SemPost(ddraw->event);
+            SDL_SetPalette(ddraw->surfaces[i]->surface, SDL_LOGPAL|SDL_PHYSPAL, (SDL_Color *)lpEntries, dwStartingEntry, dwCount);
+            if (ddraw->surfaces[i] == ddraw->primary)
+            {
+                SDL_SemPost(ddraw->event);
+            }
         }
     }
 
@@ -106,8 +110,6 @@ HRESULT __stdcall ddraw_CreatePalette(IDirectDrawImpl *This, DWORD dwFlags, LPPA
     Palette->lpVtbl = &piface;
     printf(" Palette = %p\n", Palette);
     *lpDDPalette = (LPDIRECTDRAWPALETTE)Palette;
-
-    Palette->data_rgb = NULL;
 
     ddraw_palette_SetEntries(Palette, dwFlags, 0, 256, lpDDColorArray);
 
