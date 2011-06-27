@@ -148,7 +148,7 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     This->height = height;
     This->bpp = bpp;
 
-    if (SDL_VideoModeOK(width, height, 16, SDL_HWSURFACE))
+    if (SDL_VideoModeOK(width, height, bpp, SDL_HWSURFACE|SDL_HWPALETTE|SDL_FULLSCREEN))
     {
         This->running = TRUE;
         This->thread = SDL_CreateThread((int (*)(void *))SDL_Main, This);
@@ -307,6 +307,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     ddraw_AddRef(This);
 
     ddraw = This;
+    ddraw->event = 0;
 
     This->real_dll = LoadLibrary("system32\\ddraw.dll");
     if(!This->real_dll)
@@ -338,7 +339,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         fputs(
             "[ddraw]\n"
             "windowed=true\n"
-            "fps=120\n"
+            "maxfps=0\n"
         , fh);
         fclose(fh);
     }

@@ -249,8 +249,6 @@ HRESULT __stdcall ddraw_surface_Lock(IDirectDrawSurfaceImpl *This, LPRECT lpDest
     }
 #endif
 
-    SDL_LockSurface(This->surface);
-
     lpDDSurfaceDesc->dwSize = sizeof(DDSURFACEDESC);
     lpDDSurfaceDesc->dwFlags = DDSD_LPSURFACE|DDSD_PITCH;
     lpDDSurfaceDesc->lpSurface = This->surface->pixels;
@@ -311,7 +309,10 @@ HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPRECT lpRe
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
 
-    SDL_UnlockSurface(This->surface);
+    if (ddraw->event)
+    {
+        SDL_SemPost(ddraw->event);
+    }
 
     return DD_OK;
 }

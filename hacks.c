@@ -1,5 +1,6 @@
 #include "main.h"
 #include "loader.h"
+#include "sdl_keys.h"
 
 BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
 {
@@ -12,27 +13,51 @@ SHORT WINAPI fake_GetAsyncKeyState(int vKey)
 {
     if (vKey == VK_LBUTTON)
     {
-        return (SHORT)ddraw->ldown;
+        return SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(1);
     }
 
     if (vKey == VK_RBUTTON)
     {
-        return (SHORT)ddraw->rdown;
+        return SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(2);
     }
 
-    return 0;
+    if (vKey == VK_SHIFT)
+    {
+        return SDL_GetModState() & KMOD_SHIFT;
+    }
+
+    if (vKey == VK_CONTROL)
+    {
+        return SDL_GetModState() & KMOD_CTRL;
+    }
+
+    if (vKey == VK_MENU)
+    {
+        return SDL_GetModState() & KMOD_ALT;
+    }
+
+    if (vKey == VK_CAPITAL)
+    {
+        return SDL_GetModState() & KMOD_CAPS;
+    }
+
+    if (vKey == VK_NUMLOCK)
+    {
+        return SDL_GetModState() & KMOD_NUM;
+    }
+
+    Uint8 *keys = SDL_GetKeyState(NULL);
+
+    return keys[VKey_to_SDLKey[vKey]];
+}
+
+SHORT WINAPI fake_GetKeyState(int vKey)
+{
+    return fake_GetAsyncKeyState(vKey);
 }
 
 BOOL WINAPI fake_ClipCursor(const RECT *lpRect)
 {
-    if (lpRect)
-    {
-        //SDL_WM_GrabInput(SDL_GRAB_ON);
-    }
-    else
-    {
-        //SDL_WM_GrabInput(SDL_GRAB_OFF);
-    }
     return TRUE;
 }
 
@@ -49,7 +74,6 @@ HCURSOR WINAPI fake_SetCursor(HCURSOR hCursor)
 
 BOOL WINAPI fake_ShowWindow(HWND hWnd, int nCmdShow)
 {
-    printf("ShowWindow captured\n");
     ShowWindow(hWnd, SW_HIDE);
     return 0;
 }
@@ -65,6 +89,7 @@ struct iat_table hacks_iat[] =
             { 0, "SetCursor", fake_SetCursor } ,
             { 0, "GetAsyncKeyState", fake_GetAsyncKeyState } ,
             { 0, "ShowWindow", fake_ShowWindow} ,
+            { 0, "GetKeyState", fake_GetKeyState } ,
             { 0, "", NULL }
         }
     },

@@ -50,10 +50,10 @@ typedef struct IDirectDrawImpl
     HWND hWnd;
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);
     struct { int x; int y; } cursor;
-    BOOL ldown;
-    BOOL rdown;
+
     BOOL running;
     SDL_Thread *thread;
+    SDL_sem *event;
 
 } IDirectDrawImpl;
 

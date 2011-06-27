@@ -32,7 +32,13 @@ HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD d
 #endif
 
     if (ddraw->primary && ddraw->primary->surface)
-        SDL_SetPalette(ddraw->primary->surface, SDL_LOGPAL, (SDL_Color *)lpEntries, dwStartingEntry, dwCount);
+    {
+        SDL_SetPalette(ddraw->primary->surface, SDL_LOGPAL|SDL_PHYSPAL, (SDL_Color *)lpEntries, dwStartingEntry, dwCount);
+        if (ddraw->event)
+        {
+            SDL_SemPost(ddraw->event);
+        }
+    }
 
     return DD_OK;
 }
