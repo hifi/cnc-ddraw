@@ -293,7 +293,7 @@ struct IDirectDrawImplVtbl iface =
 int stdout_open = 0;
 HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter) 
 {
-#if 0
+#if _DEBUG
     if(!stdout_open)
     {
         freopen("stdout.txt", "w", stdout);

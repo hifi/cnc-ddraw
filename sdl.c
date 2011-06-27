@@ -41,7 +41,7 @@ int SDL_Main(IDirectDrawImpl *ddraw)
             case SDL_MOUSEBUTTONUP:
                 if (!grabbed)
                 {
-                    //grabbed = SDL_WM_GrabInput(SDL_GRAB_ON);
+                    grabbed = SDL_WM_GrabInput(SDL_GRAB_ON);
                 }
 
                 ddraw->cursor.x = ev.button.x;
@@ -57,6 +57,27 @@ int SDL_Main(IDirectDrawImpl *ddraw)
                 }
                 break;
             case SDL_KEYDOWN:
+
+                /* remove input grab on alt-tab, second alt-tab should work */
+                if (grabbed && ev.key.keysym.sym == SDLK_TAB && SDL_GetModState() & KMOD_ALT)
+                {
+                    grabbed = SDL_WM_GrabInput(SDL_GRAB_OFF);
+                    break;
+                }
+
+                /* fullscreen toggle */
+                if (grabbed && ev.key.keysym.sym == SDLK_RETURN && SDL_GetModState() & KMOD_ALT)
+                {
+                    ddraw->sdl_flags ^= SDL_FULLSCREEN;
+                    ddraw->surface = SDL_SetVideoMode(ddraw->width, ddraw->height, ddraw->sdl_bpp, ddraw->sdl_flags);
+                    if (ddraw->surface == NULL)
+                    {
+                        ddraw->sdl_flags ^= SDL_FULLSCREEN;
+                        ddraw->surface = SDL_SetVideoMode(ddraw->width, ddraw->height, ddraw->sdl_bpp, ddraw->sdl_flags);
+                    }
+                    break;
+                }
+
                 vkey = SDLKey_to_VKey[ev.key.keysym.sym];
                 if (vkey)
                     ddraw->WndProc(ddraw->hWnd, WM_KEYDOWN, vkey, 0);
