@@ -46,6 +46,8 @@ typedef struct IDirectDrawImpl
     /* real export from system32\ddraw.dll */
     HRESULT WINAPI (*DirectDrawCreate)(GUID FAR*, LPDIRECTDRAW FAR*, IUnknown FAR*);
     SDL_Surface *surface;
+    int sdl_flags;
+    int sdl_bpp;
 
     HWND hWnd;
     LRESULT CALLBACK (*WndProc)(HWND, UINT, WPARAM, LPARAM);

@@ -23,7 +23,7 @@ int SDL_Main(IDirectDrawImpl *ddraw)
     BOOL grabbed = FALSE;
     int vkey;
 
-    ddraw->surface = SDL_SetVideoMode(ddraw->width, ddraw->height, 16, SDL_HWSURFACE/*|SDL_HWPALETTE|SDL_FULLSCREEN*/);
+    ddraw->surface = SDL_SetVideoMode(ddraw->width, ddraw->height, ddraw->sdl_bpp, ddraw->sdl_flags);
 
     ddraw->event = SDL_CreateSemaphore(0);
     SDL_CreateThread((int (*)(void *))SDL_Renderer, ddraw);

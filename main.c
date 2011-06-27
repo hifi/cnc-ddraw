@@ -148,7 +148,20 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     This->height = height;
     This->bpp = bpp;
 
-    if (SDL_VideoModeOK(width, height, bpp, SDL_HWSURFACE|SDL_HWPALETTE|SDL_FULLSCREEN))
+    if (This->sdl_bpp == 0)
+    {
+        const SDL_VideoInfo *vi = SDL_GetVideoInfo();
+        if (vi)
+        {
+            This->sdl_bpp = vi->vfmt->BitsPerPixel;
+        }
+        else
+        {
+            This->sdl_bpp = 32; // best guess...
+        }
+    }
+
+    if (SDL_VideoModeOK(width, height, This->sdl_bpp, This->sdl_flags) == This->sdl_bpp)
     {
         This->running = TRUE;
         This->thread = SDL_CreateThread((int (*)(void *))SDL_Main, This);
@@ -339,19 +352,25 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         fputs(
             "[ddraw]\n"
             "windowed=true\n"
-            "maxfps=0\n"
+            "; 0 = auto, possible values: 8, 16, 24, 32\n"
+            "bpp=0\n"
         , fh);
         fclose(fh);
     }
 
+    This->sdl_flags = SDL_HWSURFACE|SDL_HWPALETTE;
+    This->sdl_bpp = 0;
+
     GetPrivateProfileStringA("ddraw", "windowed", "TRUE", tmp, sizeof(tmp), ini_path);
     if(tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tmp[0] == '0')
     {
-        This->windowed = FALSE;
+        This->sdl_flags |= SDL_FULLSCREEN;
     }
-    else
+
+    This->sdl_bpp = GetPrivateProfileIntA("ddraw", "bpp", 0, ini_path);
+    if(This->sdl_bpp != 8 && This->sdl_bpp != 16 && This->sdl_bpp != 24 && This->sdl_bpp != 32)
     {
-        This->windowed = TRUE;
+        This->sdl_bpp = 0;
     }
 
     return DD_OK;
