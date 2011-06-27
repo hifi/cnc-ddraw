@@ -13,42 +13,48 @@ SHORT WINAPI fake_GetAsyncKeyState(int vKey)
 {
     if (vKey == VK_LBUTTON)
     {
-        return SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(1);
+        return SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(1) ? 0xF000 : 0;
     }
 
     if (vKey == VK_RBUTTON)
     {
-        return SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(2);
+        return SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(2) ? 0xF000 : 0;
     }
 
     if (vKey == VK_SHIFT)
     {
-        return SDL_GetModState() & KMOD_SHIFT;
+        return SDL_GetModState() & KMOD_SHIFT ? 0xF000 : 0;
     }
 
     if (vKey == VK_CONTROL)
     {
-        return SDL_GetModState() & KMOD_CTRL;
+        return SDL_GetModState() & KMOD_CTRL ? 0xF000 : 0;
     }
 
     if (vKey == VK_MENU)
     {
-        return SDL_GetModState() & KMOD_ALT;
+        return SDL_GetModState() & KMOD_ALT ? 0xF000 : 0;
     }
 
     if (vKey == VK_CAPITAL)
     {
-        return SDL_GetModState() & KMOD_CAPS;
+        return SDL_GetModState() & KMOD_CAPS ? 0xF000 : 0;
     }
 
     if (vKey == VK_NUMLOCK)
     {
-        return SDL_GetModState() & KMOD_NUM;
+        return SDL_GetModState() & KMOD_NUM ? 0xF000 : 0;
     }
 
     Uint8 *keys = SDL_GetKeyState(NULL);
+    SDLKey idx = VKey_to_SDLKey[vKey];
 
-    return keys[VKey_to_SDLKey[vKey]];
+    if (!idx)
+    {
+        printf("Warning: VKey %d (0x%02X) was not translated\n", vKey, vKey);
+    }
+
+    return keys[idx] ? 0xF000 : 0;
 }
 
 SHORT WINAPI fake_GetKeyState(int vKey)

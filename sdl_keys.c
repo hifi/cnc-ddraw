@@ -1,6 +1,11 @@
 #include "sdl_keys.h"
 
-Uint8 VKey_to_SDLKey[VK_KEYS] =
+#define VK_OEM_PLUS     0xBB
+#define VK_OEM_COMMA    0xBC
+#define VK_OEM_MINUS    0xBD
+#define VK_OEM_PERIOD   0xBE
+
+int VKey_to_SDLKey[VK_KEYS] =
 {
     0,                      // 0x00 Undefined
     0,                      // 0x01 VK_LBUTTON
@@ -46,20 +51,20 @@ Uint8 VKey_to_SDLKey[VK_KEYS] =
     0,                      // 0x29 
     0,                      // 0x2A 
     0,                      // 0x2B 
-    0,                      // 0x2C 
-    0,                      // 0x2D 
-    0,                      // 0x2E 
+    SDLK_PRINT,             // 0x2C VK_SNAPSHOT
+    SDLK_INSERT,            // 0x2D INSERT
+    SDLK_DELETE,            // 0x2E DELETE
     0,                      // 0x2F 
-    0,                      // 0x30 
-    0,                      // 0x31 
-    0,                      // 0x32 
-    0,                      // 0x33 
-    0,                      // 0x34 
-    0,                      // 0x35 
-    0,                      // 0x36 
-    0,                      // 0x37 
-    0,                      // 0x38 
-    0,                      // 0x39 
+    48,                     // 0x30 0
+    49,                     // 0x31 1
+    50,                     // 0x32 2
+    51,                     // 0x33 3
+    52,                     // 0x34 4
+    53,                     // 0x35 5
+    54,                     // 0x36 6
+    55,                     // 0x37 7
+    56,                     // 0x38 8
+    57,                     // 0x39 9
     0,                      // 0x3A 
     0,                      // 0x3B 
     0,                      // 0x3C 
@@ -67,32 +72,32 @@ Uint8 VKey_to_SDLKey[VK_KEYS] =
     0,                      // 0x3E 
     0,                      // 0x3F 
     0,                      // 0x40 
-    0,                      // 0x41 
-    0,                      // 0x42 
-    0,                      // 0x43 
-    0,                      // 0x44 
-    0,                      // 0x45 
-    0,                      // 0x46 
-    0,                      // 0x47 
-    0,                      // 0x48 
-    0,                      // 0x49 
-    0,                      // 0x4A 
-    0,                      // 0x4B 
-    0,                      // 0x4C 
-    0,                      // 0x4D 
-    0,                      // 0x4E 
-    0,                      // 0x4F 
-    0,                      // 0x50 
-    0,                      // 0x51 
-    0,                      // 0x52 
-    0,                      // 0x53 
-    0,                      // 0x54 
-    0,                      // 0x55 
-    0,                      // 0x56 
-    0,                      // 0x57 
-    0,                      // 0x58 
-    0,                      // 0x59 
-    0,                      // 0x5A 
+    SDLK_a,                 // 0x41 a
+    SDLK_b,                 // 0x42 b
+    SDLK_c,                 // 0x43 c
+    SDLK_d,                 // 0x44 d
+    SDLK_e,                 // 0x45 e
+    SDLK_f,                 // 0x46 f
+    SDLK_g,                 // 0x47 g
+    SDLK_h,                 // 0x48 h
+    SDLK_i,                 // 0x49 i
+    SDLK_j,                 // 0x4A j
+    SDLK_k,                 // 0x4B k
+    SDLK_l,                 // 0x4C l
+    SDLK_m,                 // 0x4D m
+    SDLK_n,                 // 0x4E n
+    SDLK_o,                 // 0x4F o
+    SDLK_p,                 // 0x50 p
+    SDLK_q,                 // 0x51 q
+    SDLK_r,                 // 0x52 r
+    SDLK_s,                 // 0x53 s
+    SDLK_t,                 // 0x54 t
+    SDLK_u,                 // 0x55 u
+    SDLK_v,                 // 0x56 v
+    SDLK_w,                 // 0x57 w
+    SDLK_x,                 // 0x58 x
+    SDLK_y,                 // 0x59 y
+    SDLK_z,                 // 0x5A z
     0,                      // 0x5B 
     0,                      // 0x5C 
     0,                      // 0x5D 
@@ -114,30 +119,30 @@ Uint8 VKey_to_SDLKey[VK_KEYS] =
     0,                      // 0x6D 
     0,                      // 0x6E 
     0,                      // 0x6F 
-    0,                      // 0x70 
-    0,                      // 0x71 
-    0,                      // 0x72 
-    0,                      // 0x73 
-    0,                      // 0x74 
-    0,                      // 0x75 
-    0,                      // 0x76 
-    0,                      // 0x77 
-    0,                      // 0x78 
-    0,                      // 0x79 
-    0,                      // 0x7A 
-    0,                      // 0x7B 
-    0,                      // 0x7C 
-    0,                      // 0x7D 
-    0,                      // 0x7E 
-    0,                      // 0x7F 
-    0,                      // 0x80 
-    0,                      // 0x81 
-    0,                      // 0x82 
-    0,                      // 0x83 
-    0,                      // 0x84 
-    0,                      // 0x85 
-    0,                      // 0x86 
-    0,                      // 0x87 
+    SDLK_F1,                // 0x70 F1
+    SDLK_F2,                // 0x71 F2
+    SDLK_F3,                // 0x72 F3
+    SDLK_F4,                // 0x73 F4
+    SDLK_F5,                // 0x74 F5
+    SDLK_F6,                // 0x75 F6
+    SDLK_F7,                // 0x76 F7
+    SDLK_F8,                // 0x77 F8
+    SDLK_F9,                // 0x78 F9
+    SDLK_F10,               // 0x79 F10
+    SDLK_F11,               // 0x7A F11
+    SDLK_F12,               // 0x7B F12
+    SDLK_F13,               // 0x7C F13
+    SDLK_F14,               // 0x7D F14
+    SDLK_F15,               // 0x7E F15
+    0,                      // 0x7F F16
+    0,                      // 0x80 F17
+    0,                      // 0x81 F18
+    0,                      // 0x82 F19
+    0,                      // 0x83 F20
+    0,                      // 0x84 F21
+    0,                      // 0x85 F22
+    0,                      // 0x86 F23
+    0,                      // 0x87 F24
     0,                      // 0x88 
     0,                      // 0x89 
     0,                      // 0x8A 
@@ -260,7 +265,7 @@ Uint8 VKey_to_SDLKey[VK_KEYS] =
     0                       // 0xFF 
 };
 
-int SDLKey_to_VKey[SDL_KEYS] =
+Uint8 SDLKey_to_VKey[SDL_KEYS] =
 {
     0,                      //    0 
     0,                      //    1 
@@ -281,7 +286,7 @@ int SDLKey_to_VKey[SDL_KEYS] =
     0,                      //   16 
     0,                      //   17 
     0,                      //   18 
-    0,                      //   19 
+    VK_PAUSE,               //   19 SDLK_PAUSE
     0,                      //   20 
     0,                      //   21 
     0,                      //   22 
@@ -289,7 +294,7 @@ int SDLKey_to_VKey[SDL_KEYS] =
     0,                      //   24 
     0,                      //   25 
     0,                      //   26 
-    0,                      //   27 
+    VK_ESCAPE,              //   27 SDLK_ESCAPE
     0,                      //   28 
     0,                      //   29 
     0,                      //   30 
@@ -301,29 +306,29 @@ int SDLKey_to_VKey[SDL_KEYS] =
     0,                      //   36 
     0,                      //   37 
     0,                      //   38 
-    0,                      //   39 
+    VK_OEM_7,               //   39 SDLK_QUOTE
     0,                      //   40 
     0,                      //   41 
     0,                      //   42 
     0,                      //   43 
-    0,                      //   44 
-    0,                      //   45 
-    0,                      //   46 
-    0,                      //   47 
-    0,                      //   48 
-    0,                      //   49 
-    0,                      //   50 
-    0,                      //   51 
-    0,                      //   52 
-    0,                      //   53 
-    0,                      //   54 
-    0,                      //   55 
-    0,                      //   56 
-    0,                      //   57 
+    VK_OEM_COMMA,           //   44 SDLK_COMMA
+    VK_OEM_MINUS,           //   45 SDLK_MINUS
+    VK_OEM_PERIOD,          //   46 SDLK_PERIOD
+    VK_OEM_2,               //   47 SDLK_SLASH,
+    0x30,                   //   48 0
+    0x31,                   //   49 1
+    0x32,                   //   50 2
+    0x33,                   //   51 3
+    0x34,                   //   52 4
+    0x35,                   //   53 5
+    0x36,                   //   54 6
+    0x37,                   //   55 7
+    0x38,                   //   56 8
+    0x39,                   //   57 9
     0,                      //   58 
-    0,                      //   59 
+    VK_OEM_1,               //   59 SDLK_SEMICOLON
     0,                      //   60 
-    0,                      //   61 
+    VK_OEM_PLUS,            //   61 SDLK_EQUALS
     0,                      //   62 
     0,                      //   63 
     0,                      //   64 
@@ -353,43 +358,43 @@ int SDLKey_to_VKey[SDL_KEYS] =
     0,                      //   88 
     0,                      //   89 
     0,                      //   90 
-    0,                      //   91 
-    0,                      //   92 
-    0,                      //   93 
-    0,                      //   94 
-    0,                      //   95 
-    0,                      //   96 
-    0,                      //   97 
-    0,                      //   98 
-    0,                      //   99 
-    0,                      //  100 
-    0,                      //  101 
-    0,                      //  102 
-    0,                      //  103 
-    0,                      //  104 
-    0,                      //  105 
-    0,                      //  106 
-    0,                      //  107 
-    0,                      //  108 
-    0,                      //  109 
-    0,                      //  110 
-    0,                      //  111 
-    0,                      //  112 
-    0,                      //  113 
-    0,                      //  114 
-    0,                      //  115 
-    0,                      //  116 
-    0,                      //  117 
-    0,                      //  118 
-    0,                      //  119 
-    0,                      //  120 
-    0,                      //  121 
-    0,                      //  122 
+    VK_OEM_4,               //   91 SDLK_LEFTBRACKET
+    VK_OEM_5,               //   92 SDLK_BACKSLASH
+    VK_OEM_6,               //   93 SDLK_RIGHTBRACKET
+    0,                      //   94 SDLK_CARET
+    0,                      //   95 SDLK_UNDERSCORE
+    VK_OEM_3,               //   96 SDLK_BACKQUOTE
+    0x41,                   //   97 a
+    0x42,                   //   98 b
+    0x43,                   //   99 c
+    0x44,                   //  100 d
+    0x45,                   //  101 e
+    0x46,                   //  102 f
+    0x47,                   //  103 g
+    0x48,                   //  104 h
+    0x49,                   //  105 i
+    0x4A,                   //  106 j
+    0x4B,                   //  107 k
+    0x4C,                   //  108 l
+    0x4D,                   //  109 m
+    0x4E,                   //  110 n
+    0x4F,                   //  111 o
+    0x50,                   //  112 p
+    0x51,                   //  113 q
+    0x52,                   //  114 r
+    0x53,                   //  115 s
+    0x54,                   //  116 t
+    0x55,                   //  117 u
+    0x56,                   //  118 v
+    0x57,                   //  119 w
+    0x58,                   //  120 x
+    0x59,                   //  121 y
+    0x5A,                   //  122 z
     0,                      //  123 
     0,                      //  124 
     0,                      //  125 
     0,                      //  126 
-    0,                      //  127 
+    VK_DELETE,              //  127 SDLK_DELETE
     0,                      //  128 
     0,                      //  129 
     0,                      //  130 
@@ -539,44 +544,44 @@ int SDLKey_to_VKey[SDL_KEYS] =
     VK_DOWN,                //  274 SDLK_DOWN
     VK_RIGHT,               //  275 SDLK_RIGHT
     VK_LEFT,                //  276 SDLK_LEFT
-    0,                      //  277 
-    0,                      //  278 
-    0,                      //  279 
-    0,                      //  280 
-    0,                      //  281 
-    0,                      //  282 
-    0,                      //  283 
-    0,                      //  284 
-    0,                      //  285 
-    0,                      //  286 
-    0,                      //  287 
-    0,                      //  288 
-    0,                      //  289 
-    0,                      //  290 
-    0,                      //  291 
-    0,                      //  292 
-    0,                      //  293 
-    0,                      //  294 
-    0,                      //  295 
-    0,                      //  296 
+    VK_INSERT,              //  277 SDLK_INSERT
+    VK_HOME,                //  278 SDLK_HOME
+    VK_END,                 //  279 SDLK_END
+    VK_PRIOR,               //  280 SDLK_PAGEUP
+    VK_NEXT,                //  281 SDLK_PAGEDOWN
+    VK_F1,                  //  282 F1
+    VK_F2,                  //  283 F2
+    VK_F3,                  //  284 F3
+    VK_F4,                  //  285 F4
+    VK_F5,                  //  286 F5
+    VK_F6,                  //  287 F6
+    VK_F7,                  //  288 F7
+    VK_F8,                  //  289 F8
+    VK_F9,                  //  290 F9
+    VK_F10,                 //  291 F10
+    VK_F11,                 //  292 F11
+    VK_F12,                 //  293 F12
+    VK_F13,                 //  294 F13
+    VK_F14,                 //  295 F14
+    VK_F15,                 //  296 F15
     0,                      //  297 
     0,                      //  298 
     0,                      //  299 
-    0,                      //  300 
-    0,                      //  301 
-    0,                      //  302 
-    0,                      //  303 
-    0,                      //  304 
-    0,                      //  305 
-    0,                      //  306 
-    0,                      //  307 
-    0,                      //  308 
-    0,                      //  309 
-    0,                      //  310 
-    0,                      //  311 
-    0,                      //  312 
-    0,                      //  313 
-    0,                      //  314 
+    VK_NUMLOCK,             //  300 SDLK_NUMLOCK
+    VK_CAPITAL,             //  301 SDLK_CAPSLOCK
+    VK_SCROLL,              //  302 SDLK_SCROLLOCK
+    VK_SHIFT,               //  303 SDLK_RSHIFT
+    VK_SHIFT,               //  304 SDLK_LSHIFT
+    VK_CONTROL,             //  305 SDLK_RCTRL
+    VK_CONTROL,             //  306 SDLK_LCTRL
+    VK_MENU,                //  307 SDLK_RALT
+    VK_MENU,                //  308 SDLK_LALT
+    VK_MENU,                //  309 SDLK_RMETA
+    VK_MENU,                //  310 SDLK_LMETA
+    0,                      //  311 SDLK_LSUPER
+    0,                      //  312 SDLK_RSUPER
+    0,                      //  313 SDLK_MODE
+    0,                      //  314 SDLK_COMPOSE
     0,                      //  315 
     0,                      //  316 
     0,                      //  317 
