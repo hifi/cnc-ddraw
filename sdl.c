@@ -23,6 +23,9 @@ int SDL_Main(IDirectDrawImpl *ddraw)
     BOOL grabbed = FALSE;
     int vkey;
 
+    SDL_WM_SetCaption(ddraw->title, ddraw->title);
+    printf("caption: %s\n", ddraw->title);
+
     ddraw->surface = SDL_SetVideoMode(ddraw->width, ddraw->height, ddraw->sdl_bpp, ddraw->sdl_flags);
 
     ddraw->event = SDL_CreateSemaphore(0);
