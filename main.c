@@ -200,7 +200,6 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
     This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
     GetWindowText(This->hWnd, (LPTSTR)&This->title, sizeof(This->title));
     SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)NULL_WndProc);
-    ShowWindow(hWnd, SW_HIDE);
 
     return DD_OK;
 }

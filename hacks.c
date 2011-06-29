@@ -69,7 +69,6 @@ BOOL WINAPI fake_ClipCursor(const RECT *lpRect)
 
 int WINAPI fake_ShowCursor(BOOL bShow)
 {
-    SDL_ShowCursor(bShow);
     return TRUE;
 }
 
