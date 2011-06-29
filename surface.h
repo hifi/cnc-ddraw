@@ -37,6 +37,7 @@ typedef struct IDirectDrawSurfaceImpl
     DWORD width;
     DWORD height;
     DWORD bpp;
+    DWORD flags;
     DWORD caps;
 
     IDirectDrawPaletteImpl *palette;

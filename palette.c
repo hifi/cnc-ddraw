@@ -17,6 +17,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include "palette.h"
+#include "surface.h"
 
 HRESULT __stdcall ddraw_palette_GetEntries(IDirectDrawPaletteImpl *This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries)
 {
@@ -44,7 +45,10 @@ HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD d
         }
     }
 
-    ReleaseSemaphore(ddraw->render.sem, 1, NULL);
+    if(ddraw->primary && !(ddraw->primary->flags & DDSD_BACKBUFFERCOUNT) && ddraw->render.run)
+    {
+        ReleaseSemaphore(ddraw->render.sem, 1, NULL);
+    }
 
     return DD_OK;
 }

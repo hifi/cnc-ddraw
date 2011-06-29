@@ -120,7 +120,7 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
         } 
     }
 
-    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
+    if(This->caps & DDSCAPS_PRIMARYSURFACE && !(This->flags & DDSD_BACKBUFFERCOUNT) && ddraw->render.run)
     {
         ReleaseSemaphore(ddraw->render.sem, 1, NULL);
         WaitForSingleObject(ddraw->render.ev, INFINITE);
@@ -149,9 +149,30 @@ HRESULT __stdcall ddraw_surface_DeleteAttachedSurface(IDirectDrawSurfaceImpl *Th
     return DD_OK;
 }
 
-HRESULT __stdcall ddraw_surface_EnumAttachedSurfaces(IDirectDrawSurfaceImpl *This, LPVOID a, LPDDENUMSURFACESCALLBACK b)
+HRESULT __stdcall ddraw_surface_GetSurfaceDesc(IDirectDrawSurfaceImpl *This, LPDDSURFACEDESC lpDDSurfaceDesc)
 {
-    printf("IDirectDrawSurface::EnumAttachedSurfaces(This=%p, ...)\n", This);
+    printf("IDirectDrawSurface::GetSurfaceDesc(This=%p, lpDDSurfaceDesc=%p)\n", This, lpDDSurfaceDesc);
+
+    lpDDSurfaceDesc->dwFlags = DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH|DDSD_PIXELFORMAT;
+    lpDDSurfaceDesc->dwWidth = This->width;
+    lpDDSurfaceDesc->dwHeight = This->height;
+    lpDDSurfaceDesc->lPitch = This->lPitch;
+    lpDDSurfaceDesc->ddpfPixelFormat.dwFlags = DDPF_RGB;
+    lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = This->bpp;
+
+    return DD_OK;
+}
+
+HRESULT __stdcall ddraw_surface_EnumAttachedSurfaces(IDirectDrawSurfaceImpl *This, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
+{
+    printf("IDirectDrawSurface::EnumAttachedSurfaces(This=%p, lpContext=%p, lpEnumSurfacesCallback=%p)\n", This, lpContext, lpEnumSurfacesCallback);
+
+    /* this is not actually complete, but Carmageddon seems to call EnumAttachedSurfaces instead of GetSurfaceDesc to get the main surface description */
+    LPDDSURFACEDESC lpDDSurfaceDesc = malloc(sizeof(DDSURFACEDESC));
+    ddraw_surface_GetSurfaceDesc(This, lpDDSurfaceDesc);
+    free(lpDDSurfaceDesc);
+    lpEnumSurfacesCallback((LPDIRECTDRAWSURFACE)This, lpDDSurfaceDesc, lpContext);
+
     return DD_OK;
 }
 
@@ -163,7 +184,17 @@ HRESULT __stdcall ddraw_surface_EnumOverlayZOrders(IDirectDrawSurfaceImpl *This,
 
 HRESULT __stdcall ddraw_surface_Flip(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWSURFACE a, DWORD b)
 {
+#if _DEBUG
     printf("IDirectDrawSurface::Flip(This=%p, ...)\n", This);
+#endif
+
+    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
+    {
+        ReleaseSemaphore(ddraw->render.sem, 1, NULL);
+        WaitForSingleObject(ddraw->render.ev, INFINITE);
+        ResetEvent(ddraw->render.ev);
+    }
+
     return DD_OK;
 }
 
@@ -230,12 +261,6 @@ HRESULT __stdcall ddraw_surface_GetPixelFormat(IDirectDrawSurfaceImpl *This, LPD
     return DD_OK;
 }
 
-HRESULT __stdcall ddraw_surface_GetSurfaceDesc(IDirectDrawSurfaceImpl *This, LPDDSURFACEDESC a)
-{
-    printf("IDirectDrawSurface::GetSurfaceDesc(This=%p, ...)\n", This);
-    return DD_OK;
-}
-
 HRESULT __stdcall ddraw_surface_Initialize(IDirectDrawSurfaceImpl *This, LPDIRECTDRAW a, LPDDSURFACEDESC b)
 {
     printf("IDirectDrawSurface::Initialize(This=%p, ...)\n", This);
@@ -244,7 +269,9 @@ HRESULT __stdcall ddraw_surface_Initialize(IDirectDrawSurfaceImpl *This, LPDIREC
 
 HRESULT __stdcall ddraw_surface_IsLost(IDirectDrawSurfaceImpl *This)
 {
+#if _DEBUG
     printf("IDirectDrawSurface::IsLost(This=%p)\n", This);
+#endif
     return DD_OK;
 }
 
@@ -335,7 +362,7 @@ HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPVOID lpRe
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
 
-    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
+    if(This->caps & DDSCAPS_PRIMARYSURFACE && !(This->flags & DDSD_BACKBUFFERCOUNT) && ddraw->render.run)
     {
         ReleaseSemaphore(ddraw->render.sem, 1, NULL);
     }
@@ -415,6 +442,7 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
     /* private stuff */
     Surface->bpp = This->bpp;
+    Surface->flags = lpDDSurfaceDesc->dwFlags;
 
     if(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)
     {
