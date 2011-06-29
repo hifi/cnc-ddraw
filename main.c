@@ -154,6 +154,7 @@ HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 
     EnterCriticalSection(&This->cs);
     This->render.run = FALSE;
+    ReleaseSemaphore(ddraw->render.sem, 1, NULL);
     LeaveCriticalSection(&This->cs);
 
     WaitForSingleObject(This->render.thread, INFINITE);
@@ -446,6 +447,7 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
             EnterCriticalSection(&This->cs);
 
             This->render.run = FALSE;
+            ReleaseSemaphore(ddraw->render.sem, 1, NULL);
             WaitForSingleObject(This->render.thread, INFINITE);
             This->render.thread = NULL;
 
@@ -561,6 +563,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
 
     InitializeCriticalSection(&This->cs);
     This->render.ev = CreateEvent(NULL, TRUE, FALSE, NULL);
+    This->render.sem = CreateSemaphore(NULL, 0, 1, NULL);
 
     /* load configuration options from ddraw.ini */
     char cwd[MAX_PATH];

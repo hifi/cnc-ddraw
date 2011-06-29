@@ -93,12 +93,6 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
     }
 #endif
 
-    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
-    {
-        WaitForSingleObject(ddraw->render.ev, INFINITE);
-        ResetEvent(ddraw->render.ev);
-    }
-
     if(Source)
     {
         int dx=0,dy=0; 
@@ -124,6 +118,13 @@ HRESULT __stdcall ddraw_surface_Blt(IDirectDrawSurfaceImpl *This, LPRECT lpDestR
         { 
             memcpy(to, from, s); 
         } 
+    }
+
+    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
+    {
+        ReleaseSemaphore(ddraw->render.sem, 1, NULL);
+        WaitForSingleObject(ddraw->render.ev, INFINITE);
+        ResetEvent(ddraw->render.ev);
     }
 
     return DD_OK;
@@ -333,6 +334,11 @@ HRESULT __stdcall ddraw_surface_Unlock(IDirectDrawSurfaceImpl *This, LPVOID lpRe
 #if _DEBUG
     printf("DirectDrawSurface::Unlock(This=%p, lpRect=%p)\n", This, lpRect);
 #endif
+
+    if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
+    {
+        ReleaseSemaphore(ddraw->render.sem, 1, NULL);
+    }
 
     return DD_OK;
 }

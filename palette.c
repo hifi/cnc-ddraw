@@ -44,6 +44,8 @@ HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD d
         }
     }
 
+    ReleaseSemaphore(ddraw->render.sem, 1, NULL);
+
     return DD_OK;
 }
 
