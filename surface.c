@@ -151,14 +151,26 @@ HRESULT __stdcall ddraw_surface_DeleteAttachedSurface(IDirectDrawSurfaceImpl *Th
 
 HRESULT __stdcall ddraw_surface_GetSurfaceDesc(IDirectDrawSurfaceImpl *This, LPDDSURFACEDESC lpDDSurfaceDesc)
 {
+#if _DEBUG
     printf("IDirectDrawSurface::GetSurfaceDesc(This=%p, lpDDSurfaceDesc=%p)\n", This, lpDDSurfaceDesc);
+#endif
 
-    lpDDSurfaceDesc->dwFlags = DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH|DDSD_PIXELFORMAT;
+    lpDDSurfaceDesc->dwSize = sizeof(DDSURFACEDESC);
+    lpDDSurfaceDesc->dwFlags = DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH|DDSD_PIXELFORMAT|DDSD_LPSURFACE;
     lpDDSurfaceDesc->dwWidth = This->width;
     lpDDSurfaceDesc->dwHeight = This->height;
     lpDDSurfaceDesc->lPitch = This->lPitch;
+    lpDDSurfaceDesc->lpSurface = This->surface;
     lpDDSurfaceDesc->ddpfPixelFormat.dwFlags = DDPF_RGB;
     lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = This->bpp;
+
+    if (This->bpp == 16)
+    {
+        /* RGB 555 */
+        lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0x7C00;
+        lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0x03E0;
+        lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0x001F;
+    }
 
     return DD_OK;
 }
@@ -168,10 +180,11 @@ HRESULT __stdcall ddraw_surface_EnumAttachedSurfaces(IDirectDrawSurfaceImpl *Thi
     printf("IDirectDrawSurface::EnumAttachedSurfaces(This=%p, lpContext=%p, lpEnumSurfacesCallback=%p)\n", This, lpContext, lpEnumSurfacesCallback);
 
     /* this is not actually complete, but Carmageddon seems to call EnumAttachedSurfaces instead of GetSurfaceDesc to get the main surface description */
-    LPDDSURFACEDESC lpDDSurfaceDesc = malloc(sizeof(DDSURFACEDESC));
+    static LPDDSURFACEDESC lpDDSurfaceDesc;
+    lpDDSurfaceDesc = (LPDDSURFACEDESC)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DDSURFACEDESC));
     ddraw_surface_GetSurfaceDesc(This, lpDDSurfaceDesc);
-    free(lpDDSurfaceDesc);
     lpEnumSurfacesCallback((LPDIRECTDRAWSURFACE)This, lpDDSurfaceDesc, lpContext);
+    HeapFree(GetProcessHeap(), 0, lpDDSurfaceDesc);
 
     return DD_OK;
 }
@@ -302,12 +315,7 @@ HRESULT __stdcall ddraw_surface_Lock(IDirectDrawSurfaceImpl *This, LPRECT lpDest
     }
 #endif
 
-    lpDDSurfaceDesc->dwSize = sizeof(DDSURFACEDESC);
-    lpDDSurfaceDesc->dwFlags = DDSD_LPSURFACE|DDSD_PITCH;
-    lpDDSurfaceDesc->lpSurface = This->surface;
-    lpDDSurfaceDesc->lPitch = This->lPitch;
-
-    return DD_OK;
+    return ddraw_surface_GetSurfaceDesc(This, lpDDSurfaceDesc);
 }
 
 HRESULT __stdcall ddraw_surface_ReleaseDC(IDirectDrawSurfaceImpl *This, HDC a)
@@ -466,9 +474,9 @@ HRESULT __stdcall ddraw_CreateSurface(IDirectDrawImpl *This, LPDDSURFACEDESC lpD
 
     if(Surface->width && Surface->height)
     {
-        Surface->lPitch = Surface->width;
         Surface->lXPitch = Surface->bpp / 8;
-        Surface->surface = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, Surface->width * Surface->height * Surface->lXPitch);
+        Surface->lPitch = Surface->width * Surface->lXPitch;
+        Surface->surface = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, Surface->lPitch * Surface->height * Surface->lXPitch);
     }
 
     printf(" Surface = %p (%dx%d@%d)\n", Surface, (int)Surface->width, (int)Surface->height, (int)Surface->bpp);

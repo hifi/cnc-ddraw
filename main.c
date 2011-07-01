@@ -175,12 +175,6 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
     This->render.run = TRUE;
 
-    /* currently we only support 8 bit modes */
-    if(bpp != 8)
-    {
-        return DDERR_INVALIDMODE;
-    }
-
     This->mode.dmSize = sizeof(DEVMODE);
     This->mode.dmDriverExtra = 0;
 
@@ -422,6 +416,9 @@ HRESULT __stdcall ddraw_WaitForVerticalBlank(IDirectDrawImpl *This, DWORD a, HAN
 HRESULT __stdcall ddraw_QueryInterface(IDirectDrawImpl *This, REFIID riid, void **obj)
 {
     printf("DirectDraw::QueryInterface(This=%p, riid=%08X, obj=%p)\n", This, (unsigned int)riid, obj);
+
+    *obj = This;
+
     return S_OK;
 }
 

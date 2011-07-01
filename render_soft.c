@@ -27,11 +27,11 @@ DWORD WINAPI render_soft_main(void)
 
     PBITMAPINFO bmi = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(BITMAPINFO) + (sizeof(RGBQUAD) * 256) + 1024);
 
-    bmi->bmiHeader.biSize = sizeof(BITMAPINFO);
+    bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmi->bmiHeader.biWidth = ddraw->width;
     bmi->bmiHeader.biHeight = -ddraw->height;
     bmi->bmiHeader.biPlanes = 1;
-    bmi->bmiHeader.biBitCount = 8;
+    bmi->bmiHeader.biBitCount = ddraw->bpp;
     bmi->bmiHeader.biCompression = BI_RGB;
 
     SelectObject(memDC, surface);
@@ -58,9 +58,9 @@ DWORD WINAPI render_soft_main(void)
         }
 
         EnterCriticalSection(&ddraw->cs);
-        if (ddraw->primary && ddraw->primary->palette)
+        if (ddraw->primary && (ddraw->primary->palette || ddraw->bpp == 16))
         {
-            if (ddraw->primary->palette->data_rgb == NULL)
+            if (ddraw->primary->palette && ddraw->primary->palette->data_rgb == NULL)
             {
                 ddraw->primary->palette->data_rgb = &bmi->bmiColors[1];
             }
