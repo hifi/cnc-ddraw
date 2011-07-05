@@ -583,10 +583,10 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "bpp=0\n"
             "windowed=true\n"
             "; real rendering rate, -1 = screen rate, 0 = unlimited, n = cap\n"
-            "maxfps=120\n"
-            "; vertical synchronization, enable if you get tearing\n"
+            "maxfps=0\n"
+            "; vertical synchronization, enable if you get tearing (OpenGL only)\n"
             "vsync=false\n"
-            "; scaling filter, nearest = sharp, linear = smooth\n"
+            "; scaling filter, nearest = sharp, linear = smooth (OpenGL only)\n"
             "filter=nearest\n"
             "; automatic mouse sensitivity scaling\n"
             "adjmouse=false\n"
@@ -612,7 +612,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         This->windowed = TRUE;
     }
 
-    This->render.maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 120, ini_path);
+    This->render.maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 0, ini_path);
     This->render.width = GetPrivateProfileIntA("ddraw", "width", 640, ini_path);
     if(This->render.width < 640)
     {
