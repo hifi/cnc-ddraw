@@ -62,7 +62,7 @@ DWORD WINAPI render_soft_main(void)
         {
             if (ddraw->primary->palette && ddraw->primary->palette->data_rgb == NULL)
             {
-                ddraw->primary->palette->data_rgb = &bmi->bmiColors[1];
+                ddraw->primary->palette->data_rgb = &bmi->bmiColors[0];
             }
 
             SetDIBits(memDC, surface, 0, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS);
