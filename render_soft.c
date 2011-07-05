@@ -50,7 +50,7 @@ DWORD WINAPI render_soft_main(void)
         frame_len = 1000.0f / ddraw->render.maxfps;
     }
 
-    while (ddraw->render.run && WaitForSingleObject(ddraw->render.sem, INFINITE) == WAIT_OBJECT_0)
+    while (ddraw->render.run && WaitForSingleObject(ddraw->render.sem, 100) != WAIT_FAILED)
     {
         if(ddraw->render.maxfps > 0)
         {
