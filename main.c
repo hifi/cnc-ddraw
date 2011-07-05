@@ -152,13 +152,17 @@ HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
         return DD_OK;
     }
 
-    EnterCriticalSection(&This->cs);
-    This->render.run = FALSE;
-    ReleaseSemaphore(ddraw->render.sem, 1, NULL);
-    LeaveCriticalSection(&This->cs);
+    /* only stop drawing in GL mode when minimized */
+    if (This->renderer == render_main)
+    {
+        EnterCriticalSection(&This->cs);
+        This->render.run = FALSE;
+        ReleaseSemaphore(ddraw->render.sem, 1, NULL);
+        LeaveCriticalSection(&This->cs);
 
-    WaitForSingleObject(This->render.thread, INFINITE);
-    This->render.thread = NULL;
+        WaitForSingleObject(This->render.thread, INFINITE);
+        This->render.thread = NULL;
+    }
 
     if(!ddraw->windowed)
     {
@@ -442,13 +446,12 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
         if(This->render.run)
         {
             EnterCriticalSection(&This->cs);
-
             This->render.run = FALSE;
             ReleaseSemaphore(ddraw->render.sem, 1, NULL);
+            LeaveCriticalSection(&This->cs);
+
             WaitForSingleObject(This->render.thread, INFINITE);
             This->render.thread = NULL;
-
-            LeaveCriticalSection(&This->cs);
         }
 
         if(This->render.hDC)
