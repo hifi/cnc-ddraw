@@ -594,9 +594,9 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "sensitivity=0.0\n"
             "; enable C&C/RA mouse hack\n"
             "mhack=true\n"
-            "; enable C&C video resize hack, auto = auto-detect game, true = forced, false = disabled\n"
+            "; enable C&C video resize hack, auto = auto-detect game, true = forced, false = disabled (OpenGL only)\n"
             "vhack=auto\n"
-            "; switch between OpenGL (opengl) and software (gdi) renderers, latter supports less features\n"
+            "; switch between OpenGL (opengl) and software (gdi) renderers, latter supports less features but might be faster depending on the GPU\n"
             "renderer=opengl\n"
         , fh);
         fclose(fh);
