@@ -194,6 +194,9 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     This->cursorclip.width = width;
     This->cursorclip.height = height;
 
+    ddraw->cursor.x = ddraw->cursorclip.width / 2;
+    ddraw->cursor.y = ddraw->cursorclip.height / 2;
+
     if(This->render.width < This->width)
     {
         This->render.width = This->width;
@@ -323,14 +326,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_CHAR: /* for StarCraft and general support */
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
         case WM_LBUTTONUP:
+        case WM_RBUTTONUP:
             if (ddraw->mhack && !ddraw->locked)
             {
+                ddraw->cursor.x = LOWORD(lParam) * ((float)ddraw->width / ddraw->render.width);
+                ddraw->cursor.y = HIWORD(lParam) * ((float)ddraw->height / ddraw->render.height);
                 mouse_lock();
                 return 0;
             }
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
-        case WM_RBUTTONUP:
         /* rest for StarCraft and general support */
         case WM_MBUTTONDOWN:
         case WM_MBUTTONUP:
@@ -339,6 +344,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_RBUTTONDBLCLK:
             if(ddraw->mhack)
             {
+                if (!ddraw->locked)
+                {
+                    return 0;
+                }
+
                 lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
             }
         case 1129: /* this somehow triggers network activity in C&C in WCHAT mode */

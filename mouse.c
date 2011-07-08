@@ -209,17 +209,16 @@ void mouse_unlock()
 
     if(ddraw->locked)
     {
+        ddraw->locked = FALSE;
+        SetCursorPos(ddraw->cursor.x * ddraw->render.width / ddraw->width , ddraw->cursor.y * ddraw->render.height / ddraw->height);
+
         while(ShowCursor(TRUE) < 0);
         SetCursor(LoadCursor(NULL, IDC_ARROW));
 
         ClipCursor(NULL);
         ReleaseCapture();
 
-        ddraw->locked = FALSE;
     }
-
-    ddraw->cursor.x = ddraw->cursorclip.width / 2;
-    ddraw->cursor.y = ddraw->cursorclip.height / 2;
 }
 
 void mouse_init(HWND hWnd)
