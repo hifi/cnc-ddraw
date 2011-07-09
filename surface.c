@@ -203,9 +203,9 @@ HRESULT __stdcall ddraw_surface_Flip(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWS
 
     if(This->caps & DDSCAPS_PRIMARYSURFACE && ddraw->render.run)
     {
+        ResetEvent(ddraw->render.ev);
         ReleaseSemaphore(ddraw->render.sem, 1, NULL);
         WaitForSingleObject(ddraw->render.ev, INFINITE);
-        ResetEvent(ddraw->render.ev);
     }
 
     return DD_OK;
