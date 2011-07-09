@@ -265,6 +265,7 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    RECT rc = { 0, 0, ddraw->render.width, ddraw->render.height };
     POINT pt;
 
     switch(uMsg)
@@ -372,6 +373,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 return ddraw->WndProc(hWnd, uMsg, wParam, MAKELPARAM(pt.x, pt.y));
             }
             return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+
+        case WM_ERASEBKGND:
+            EnterCriticalSection(&ddraw->cs);
+            FillRect(ddraw->render.hDC, &rc, (HBRUSH) GetStockObject(BLACK_BRUSH));
+            LeaveCriticalSection(&ddraw->cs);
+            return TRUE;
     }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -601,6 +608,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "windowed=true\n"
             "; show window borders in windowed mode\n"
             "border=true\n"
+            "; use letter- or windowboxing to make a best fit (GDI only!)\n"
+            "boxing=false\n"
             "; real rendering rate, -1 = screen rate, 0 = unlimited, n = cap\n"
             "maxfps=0\n"
             "; vertical synchronization, enable if you get tearing (OpenGL only)\n"
@@ -639,6 +648,16 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     else
     {
         This->border = TRUE;
+    }
+
+    GetPrivateProfileStringA("ddraw", "boxing", "FALSE", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tmp[0] == '0')
+    {
+        This->boxing = FALSE;
+    }
+    else
+    {
+        This->boxing = TRUE;
     }
 
     This->render.maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 0, ini_path);

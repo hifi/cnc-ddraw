@@ -99,6 +99,7 @@ DWORD WINAPI render_main(void)
 
         /* convert ddraw surface to opengl texture */
         EnterCriticalSection(&ddraw->cs);
+
         if(ddraw->primary && ddraw->primary->palette)
         {
             if(ddraw->vhack && detect_cutscene())

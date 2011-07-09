@@ -31,9 +31,30 @@ DWORD WINAPI render_soft_main(void)
     bmi->bmiHeader.biBitCount = ddraw->bpp;
     bmi->bmiHeader.biCompression = BI_RGB;
 
+    DWORD dst_top = 0;
+    DWORD dst_left = 0;
+    DWORD dst_width = ddraw->render.width;
+    DWORD dst_height = ddraw->render.height;
+
     DWORD tick_start = 0;
     DWORD tick_end = 0;
     DWORD frame_len = 0;
+
+    if (ddraw->boxing)
+    {
+        dst_width = ddraw->width;
+        dst_height = ddraw->height;
+
+        /* test if we can double scale the window */
+        if (ddraw->width * 2 <= ddraw->render.width && ddraw->height * 2 <= ddraw->render.height)
+        {
+            dst_width *= 2;
+            dst_height *= 2;
+        }
+
+        dst_top = ddraw->render.height / 2 - dst_height / 2;
+        dst_left = ddraw->render.width / 2 - dst_width / 2;
+    }
 
     if(ddraw->render.maxfps < 0)
     {
@@ -53,6 +74,7 @@ DWORD WINAPI render_soft_main(void)
         }
 
         EnterCriticalSection(&ddraw->cs);
+
         if (ddraw->primary && (ddraw->primary->palette || ddraw->bpp == 16))
         {
             if (ddraw->primary->palette && ddraw->primary->palette->data_rgb == NULL)
@@ -62,7 +84,7 @@ DWORD WINAPI render_soft_main(void)
 
             if (ddraw->render.width != ddraw->width || ddraw->render.height != ddraw->height)
             {
-                StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, 0, ddraw->width, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
+                StretchDIBits(ddraw->render.hDC, dst_left, dst_top, dst_width, dst_height, 0, 0, ddraw->width, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
             }
             else
             {

@@ -39,6 +39,7 @@ typedef struct IDirectDrawImpl
     DWORD bpp;
     BOOL windowed;
     BOOL border;
+    BOOL boxing;
     BOOL windowed_init;
     DEVMODE mode;
     struct IDirectDrawSurfaceImpl *primary;
