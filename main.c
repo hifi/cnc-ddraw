@@ -212,7 +212,14 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     {
         if(!This->windowed_init)
         {
-            SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER | WS_SYSMENU | WS_MINIMIZEBOX);
+            if (!This->border)
+            {
+                SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) & ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU));
+            }
+            else
+            {
+                SetWindowLong(This->hWnd, GWL_STYLE, GetWindowLong(This->hWnd, GWL_STYLE) | WS_CAPTION | WS_BORDER | WS_SYSMENU | WS_MINIMIZEBOX);
+            }
 
             /* center the window with correct dimensions */
             int x = (This->mode.dmPelsWidth / 2) - (This->render.width / 2);
@@ -592,6 +599,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "; bits per pixel, possible values: 16, 24 and 32, 0 = auto\n"
             "bpp=0\n"
             "windowed=true\n"
+            "; show window borders in windowed mode\n"
+            "border=true\n"
             "; real rendering rate, -1 = screen rate, 0 = unlimited, n = cap\n"
             "maxfps=0\n"
             "; vertical synchronization, enable if you get tearing (OpenGL only)\n"
@@ -620,6 +629,16 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     else
     {
         This->windowed = TRUE;
+    }
+
+    GetPrivateProfileStringA("ddraw", "border", "TRUE", tmp, sizeof(tmp), ini_path);
+    if(tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tmp[0] == '0')
+    {
+        This->border = FALSE;
+    }
+    else
+    {
+        This->border = TRUE;
     }
 
     This->render.maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 0, ini_path);
