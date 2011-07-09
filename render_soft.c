@@ -22,10 +22,7 @@
 
 DWORD WINAPI render_soft_main(void)
 {
-    HDC memDC = CreateCompatibleDC(ddraw->render.hDC);
-    HBITMAP surface = CreateCompatibleBitmap(ddraw->render.hDC, ddraw->width, ddraw->height);
-
-    PBITMAPINFO bmi = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(BITMAPINFO) + (sizeof(RGBQUAD) * 256) + 1024);
+    PBITMAPINFO bmi = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256);
 
     bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmi->bmiHeader.biWidth = ddraw->width;
@@ -33,8 +30,6 @@ DWORD WINAPI render_soft_main(void)
     bmi->bmiHeader.biPlanes = 1;
     bmi->bmiHeader.biBitCount = ddraw->bpp;
     bmi->bmiHeader.biCompression = BI_RGB;
-
-    SelectObject(memDC, surface);
 
     DWORD tick_start = 0;
     DWORD tick_end = 0;
@@ -65,15 +60,13 @@ DWORD WINAPI render_soft_main(void)
                 ddraw->primary->palette->data_rgb = &bmi->bmiColors[0];
             }
 
-            SetDIBits(memDC, surface, 0, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS);
-
             if (ddraw->render.width != ddraw->width || ddraw->render.height != ddraw->height)
             {
-                StretchBlt(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, memDC, 0, 0, ddraw->width, ddraw->height, SRCCOPY);
+                StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, 0, ddraw->width, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
             }
             else
             {
-                BitBlt(ddraw->render.hDC, 0, 0, ddraw->width, ddraw->height, memDC, 0, 0, SRCCOPY);
+                SetDIBitsToDevice(ddraw->render.hDC, 0, 0, ddraw->width, ddraw->height, 0, 0, 0, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS);
             }
         }
         LeaveCriticalSection(&ddraw->cs);
@@ -92,7 +85,6 @@ DWORD WINAPI render_soft_main(void)
     }
 
     HeapFree(GetProcessHeap(), 0, bmi);
-    DeleteObject(surface);
-    DeleteDC(memDC);
+
     return TRUE;
 }
