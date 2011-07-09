@@ -420,6 +420,8 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
         SetPixelFormat( This->render.hDC, ChoosePixelFormat( This->render.hDC, &pfd ), &pfd );
     }
 
+    SetCursor(LoadCursor(NULL, IDC_ARROW));
+
     GetWindowText(This->hWnd, (LPTSTR)&This->title, sizeof(This->title));
 
     if(This->vhack == 1)
