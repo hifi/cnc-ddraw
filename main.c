@@ -15,6 +15,7 @@
  */
 
 #include <windows.h>
+#include <windowsx.h>
 #include <stdio.h>
 #include <ctype.h>
 #include "ddraw.h"
@@ -39,6 +40,7 @@ IDirectDrawImpl *ddraw = NULL;
 
 DWORD WINAPI render_main(void);
 DWORD WINAPI render_soft_main(void);
+DWORD WINAPI render_dummy_main(void);
 
 HRESULT __stdcall ddraw_Compact(IDirectDrawImpl *This)
 {
@@ -177,8 +179,6 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
 {
     printf("DirectDraw::SetDisplayMode(This=%p, width=%d, height=%d, bpp=%d)\n", This, (unsigned int)width, (unsigned int)height, (unsigned int)bpp);
 
-    This->render.run = TRUE;
-
     This->mode.dmSize = sizeof(DEVMODE);
     This->mode.dmDriverExtra = 0;
 
@@ -205,6 +205,13 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     {
         This->render.height = This->height;
     }
+
+    if (This->renderer == render_dummy_main)
+    {
+        return DD_OK;
+    }
+
+    This->render.run = TRUE;
 
     mouse_unlock();
 
@@ -261,6 +268,42 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     }
 
     return DD_OK;
+}
+
+/* minimal window proc for dummy renderer as everything is emulated */
+LRESULT CALLBACK dummy_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    switch(uMsg)
+    {
+        case WM_USER:
+            ddraw->render.width = LOWORD(wParam);
+            ddraw->render.height = HIWORD(wParam);
+            ddraw->render.hDC = GetDC((HWND)lParam);
+            if (!ddraw->render.thread)
+            {
+                ddraw->render.run = TRUE;
+                ddraw->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ddraw->renderer, NULL, 0, NULL);
+            }
+            uMsg = WM_ACTIVATEAPP;
+            wParam = TRUE;
+            break;
+        case WM_SIZE:
+        case WM_NCACTIVATE:
+        case WM_ACTIVATEAPP:
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        case WM_MOUSEMOVE:
+        case WM_NCMOUSEMOVE:
+            ddraw->cursor.x = GET_X_LPARAM(lParam);
+            ddraw->cursor.y = GET_Y_LPARAM(lParam);
+            break;
+    }
+
+    if (ddraw->WndProc)
+    {
+        return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -401,6 +444,14 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
     mouse_init(hWnd);
 
     This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
+
+    if (This->renderer == render_dummy_main)
+    {
+        SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)dummy_WndProc);
+        ShowWindow(This->hWnd, SW_HIDE);
+        return DD_OK;
+    }
+
     if(!This->devmode)
     {
         SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
@@ -749,7 +800,12 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     GetPrivateProfileStringA("ddraw", "renderer", "opengl", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 's' || tolower(tmp[0]) == 'g')
+    if(tolower(tmp[0]) == 'd' || tolower(tmp[0]) == 'd')
+    {
+        printf("DirectDrawCreate: Using dummy renderer\n");
+        This->renderer = render_dummy_main;
+    }
+    else if(tolower(tmp[0]) == 's' || tolower(tmp[0]) == 'g')
     {
         printf("DirectDrawCreate: Using software renderer\n");
         This->renderer = render_soft_main;
