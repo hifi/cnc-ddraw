@@ -77,9 +77,9 @@ DWORD WINAPI render_soft_main(void)
 
         if (ddraw->primary && (ddraw->primary->palette || ddraw->bpp == 16))
         {
-            if (ddraw->primary->palette)
+            if (ddraw->primary->palette && ddraw->primary->palette->data_rgb == NULL)
             {
-                memcpy(bmi->bmiColors, ddraw->primary->palette->data_rgb, sizeof(RGBQUAD) * 256);
+                ddraw->primary->palette->data_rgb = &bmi->bmiColors[0];
             }
 
             if (ddraw->render.width != ddraw->width || ddraw->render.height != ddraw->height)

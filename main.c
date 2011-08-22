@@ -206,12 +206,16 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
         This->render.height = This->height;
     }
 
+    This->render.run = TRUE;
+
     if (This->renderer == render_dummy_main)
     {
+        if(This->render.thread == NULL)
+        {
+            This->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)This->renderer, NULL, 0, NULL);
+        }
         return DD_OK;
     }
-
-    This->render.run = TRUE;
 
     mouse_unlock();
 
@@ -275,21 +279,17 @@ LRESULT CALLBACK dummy_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 {
     switch(uMsg)
     {
+        /* if the plugin window changes */
         case WM_USER:
-            ddraw->render.width = LOWORD(wParam);
-            ddraw->render.height = HIWORD(wParam);
-            ddraw->render.hDC = GetDC((HWND)lParam);
-            if (!ddraw->render.thread)
+            ddraw->hWnd = (HWND)lParam;
+            ddraw->render.hDC = GetDC(ddraw->hWnd);
+        case WM_ACTIVATEAPP:
+            if (wParam == TRUE)
             {
-                ddraw->render.run = TRUE;
-                ddraw->render.thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ddraw->renderer, NULL, 0, NULL);
+                break;
             }
-            uMsg = WM_ACTIVATEAPP;
-            wParam = TRUE;
-            break;
         case WM_SIZE:
         case WM_NCACTIVATE:
-        case WM_ACTIVATEAPP:
             return DefWindowProc(hWnd, uMsg, wParam, lParam);
         case WM_MOUSEMOVE:
         case WM_NCMOUSEMOVE:
@@ -439,16 +439,22 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
         return DDERR_INVALIDPARAMS;
     }
 
-    This->hWnd = hWnd;
+    if (This->hWnd == NULL)
+    {
+        This->hWnd = hWnd;
+    }
 
     mouse_init(hWnd);
 
-    This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(This->hWnd, GWL_WNDPROC);
+    This->WndProc = (LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM))GetWindowLong(hWnd, GWL_WNDPROC);
 
     if (This->renderer == render_dummy_main)
     {
-        SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)dummy_WndProc);
-        ShowWindow(This->hWnd, SW_HIDE);
+        This->render.hDC = GetDC(This->hWnd);
+        SetWindowLong(hWnd, GWL_WNDPROC, (LONG)dummy_WndProc);
+        ShowWindow(hWnd, SW_HIDE);
+        PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, TRUE);
+        PostMessage(This->hWnd, WM_USER, 0, (LPARAM)hWnd);
         return DD_OK;
     }
 
@@ -814,6 +820,26 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     {
         printf("DirectDrawCreate: Using OpenGL renderer\n");
         This->renderer = render_main;
+    }
+
+    /* last minute check for cnc-plugin */
+    if (GetEnvironmentVariable("DDRAW_WINDOW", tmp, sizeof(tmp)) > 0)
+    {
+        This->hWnd = (HWND)atoi(tmp);
+        This->renderer = render_dummy_main;
+        This->windowed = TRUE;
+
+        if (GetEnvironmentVariable("DDRAW_WIDTH", tmp, sizeof(tmp)) > 0)
+        {
+            This->render.width = atoi(tmp);
+        }
+
+        if (GetEnvironmentVariable("DDRAW_HEIGHT", tmp, sizeof(tmp)) > 0)
+        {
+            This->render.height = atoi(tmp);
+        }
+
+        printf("DirectDrawCreate: Detected cnc-plugin at window %08X in %dx%d\n", (unsigned int)This->hWnd, This->render.width, This->render.height);
     }
 
     return DD_OK;

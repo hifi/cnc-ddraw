@@ -36,10 +36,14 @@ HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD d
     for(i=0;i<256;i++)
     {
         This->data_bgr[i] = (lpEntries[i].peBlue<<16)|(lpEntries[i].peGreen<<8)|lpEntries[i].peRed;
-        This->data_rgb[i].rgbRed = lpEntries[i].peRed;
-        This->data_rgb[i].rgbGreen = lpEntries[i].peGreen;
-        This->data_rgb[i].rgbBlue = lpEntries[i].peBlue;
-        This->data_rgb[i].rgbReserved = 0;
+
+        if (This->data_rgb)
+        {
+            This->data_rgb[i].rgbRed = lpEntries[i].peRed;
+            This->data_rgb[i].rgbGreen = lpEntries[i].peGreen;
+            This->data_rgb[i].rgbBlue = lpEntries[i].peBlue;
+            This->data_rgb[i].rgbReserved = 0;
+        }
     }
 
     if(ddraw->primary && !(ddraw->primary->flags & DDSD_BACKBUFFERCOUNT) && ddraw->render.run)
