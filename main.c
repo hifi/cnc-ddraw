@@ -526,6 +526,11 @@ ULONG __stdcall ddraw_Release(IDirectDrawImpl *This)
 
     if(This->Ref == 0)
     {
+        if (This->hWnd && This->renderer == render_dummy_main)
+        {
+            PostMessage(This->hWnd, WM_USER, 0, 0);
+        }
+
         if(This->render.run)
         {
             EnterCriticalSection(&This->cs);
