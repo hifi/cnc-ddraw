@@ -665,8 +665,9 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         FILE *fh = fopen(ini_path, "w");
         fputs(
             "[ddraw]\n"
-            "width=640\n"
-            "height=400\n"
+            "; width and height of the window, defaults to the size game requests\r\n"
+            "width=0\n"
+            "height=0\n"
             "; bits per pixel, possible values: 16, 24 and 32, 0 = auto\n"
             "bpp=0\n"
             "windowed=true\n"
@@ -687,15 +688,15 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "; enable C&C/RA mouse hack\n"
             "mhack=true\n"
             "; enable C&C video resize hack, auto = auto-detect game, true = forced, false = disabled (OpenGL only)\n"
-            "vhack=auto\n"
+            "vhack=false\n"
             "; switch between OpenGL (opengl) and software (gdi) renderers, latter supports less features but might be faster depending on the GPU\n"
-            "renderer=opengl\n"
+            "renderer=gdi\n"
         , fh);
         fclose(fh);
     }
 
     GetPrivateProfileStringA("ddraw", "windowed", "TRUE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tmp[0] == '0')
+    if (tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tolower(tmp[0]) == 'd' || tmp[0] == '0')
     {
         This->windowed = FALSE;
     }
@@ -705,7 +706,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     GetPrivateProfileStringA("ddraw", "border", "TRUE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tmp[0] == '0')
+    if (tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tolower(tmp[0]) == 'd' || tmp[0] == '0')
     {
         This->border = FALSE;
     }
@@ -715,7 +716,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     GetPrivateProfileStringA("ddraw", "boxing", "FALSE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tmp[0] == '0')
+    if (tolower(tmp[0]) == 'n' || tolower(tmp[0]) == 'f' || tolower(tmp[0]) == 'd' || tmp[0] == '0')
     {
         This->boxing = FALSE;
     }
@@ -725,25 +726,17 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     This->render.maxfps = GetPrivateProfileIntA("ddraw", "maxfps", 0, ini_path);
-    This->render.width = GetPrivateProfileIntA("ddraw", "width", 640, ini_path);
-    if(This->render.width < 640)
-    {
-        This->render.width = 640;
-    }
+    This->render.width = GetPrivateProfileIntA("ddraw", "width", 0, ini_path);
+    This->render.height = GetPrivateProfileIntA("ddraw", "height", 0, ini_path);
 
-    This->render.height = GetPrivateProfileIntA("ddraw", "height", 400, ini_path);
-    if(This->render.height < 400)
-    {
-        This->render.height = 400;
-    }
     This->render.bpp = GetPrivateProfileIntA("ddraw", "bpp", 32, ini_path);
-    if(This->render.bpp != 16 && This->render.bpp != 24 && This->render.bpp != 32)
+    if (This->render.bpp != 16 && This->render.bpp != 24 && This->render.bpp != 32)
     {
         This->render.bpp = 0;
     }
 
     GetPrivateProfileStringA("ddraw", "filter", tmp, tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'l' || tolower(tmp[3]) == 'l')
+    if (tolower(tmp[0]) == 'l' || tolower(tmp[3]) == 'l')
     {
         This->render.filter = 1;
     }
@@ -753,7 +746,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     GetPrivateProfileStringA("ddraw", "adjmouse", "FALSE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    if (tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tolower(tmp[0]) == 'e' || tmp[0] == '1')
     {
         This->adjmouse = TRUE;
     }
@@ -763,7 +756,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     GetPrivateProfileStringA("ddraw", "mhack", "TRUE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    if (tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tolower(tmp[0]) == 'e' || tmp[0] == '1')
     {
         This->mhack = TRUE;
     }
@@ -773,7 +766,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     GetPrivateProfileStringA("ddraw", "devmode", "FALSE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    if (tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tolower(tmp[0]) == 'e' || tmp[0] == '1')
     {
         This->devmode = TRUE;
         This->mhack = FALSE;
@@ -784,7 +777,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     }
 
     GetPrivateProfileStringA("ddraw", "vsync", "FALSE", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    if (tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tolower(tmp[0]) == 'e' || tmp[0] == '1')
     {
         This->vsync = TRUE;
     }
@@ -796,8 +789,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     GetPrivateProfileStringA("ddraw", "sensitivity", "0", tmp, sizeof(tmp), ini_path);
     This->sensitivity = strtof(tmp, NULL);
 
-    GetPrivateProfileStringA("ddraw", "vhack", "auto", tmp, sizeof(tmp), ini_path);
-    if(tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tmp[0] == '1')
+    GetPrivateProfileStringA("ddraw", "vhack", "false", tmp, sizeof(tmp), ini_path);
+    if (tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tolower(tmp[0]) == 'e' || tmp[0] == '1')
     {
         This->vhack = 2;
     }
@@ -810,7 +803,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
         This->vhack = 0;
     }
 
-    GetPrivateProfileStringA("ddraw", "renderer", "opengl", tmp, sizeof(tmp), ini_path);
+    GetPrivateProfileStringA("ddraw", "renderer", "gdi", tmp, sizeof(tmp), ini_path);
     if(tolower(tmp[0]) == 'd' || tolower(tmp[0]) == 'd')
     {
         printf("DirectDrawCreate: Using dummy renderer\n");
