@@ -33,7 +33,7 @@ HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD d
     printf("DirectDrawPalette::SetEntries(This=%p, dwFlags=%d, dwStartingEntry=%d, dwCount=%d, lpEntries=%p)\n", This, (int)dwFlags, (int)dwStartingEntry, (int)dwCount, lpEntries);
 #endif
 
-    for(i=0;i<256;i++)
+    for(i=dwStartingEntry;i<dwStartingEntry+dwCount;i++)
     {
         This->data_bgr[i] = (lpEntries[i].peBlue<<16)|(lpEntries[i].peGreen<<8)|lpEntries[i].peRed;
 
