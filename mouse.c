@@ -202,6 +202,9 @@ void mouse_lock()
 
 void mouse_unlock()
 {
+    RECT rc;
+    POINT pt;
+
     if(!mouse_active)
     {
         return;
@@ -210,8 +213,15 @@ void mouse_unlock()
     if(ddraw->locked)
     {
         ddraw->locked = FALSE;
-        SetCursorPos(ddraw->cursor.x * ddraw->render.width / ddraw->width , ddraw->cursor.y * ddraw->render.height / ddraw->height);
 
+        GetWindowRect(ddraw->hWnd, &rc);
+
+        pt.x = (rc.right - rc.left - ddraw->render.width) / 2;
+        pt.y = (rc.bottom - rc.top - ddraw->render.height - pt.x);
+        rc.left += pt.x;
+        rc.top += pt.y;
+
+        SetCursorPos(rc.left + (ddraw->cursor.x * ddraw->render.width / ddraw->width), rc.top + (ddraw->cursor.y * ddraw->render.height / ddraw->height));
         while(ShowCursor(TRUE) < 0);
         SetCursor(LoadCursor(NULL, IDC_ARROW));
 
