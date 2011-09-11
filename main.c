@@ -168,7 +168,6 @@ HRESULT __stdcall ddraw_RestoreDisplayMode(IDirectDrawImpl *This)
 
     if(!ddraw->windowed)
     {
-        This->mode.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFLAGS|DM_DISPLAYFREQUENCY|DM_POSITION;
         ChangeDisplaySettings(&This->mode, 0);
     }
 
@@ -309,57 +308,62 @@ LRESULT CALLBACK dummy_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     RECT rc = { 0, 0, ddraw->render.width, ddraw->render.height };
-    POINT pt;
 
     switch(uMsg)
     {
-        case WM_DESTROY:
-            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+        /* Carmageddon stops the main loop when it sees these, DefWindowProc is also bad */
+        case WM_WINDOWPOSCHANGING:
+        case WM_WINDOWPOSCHANGED:
+            return 0;
+
+        /* C&C and RA really don't want to close down */
         case WM_SYSCOMMAND:
-            if(wParam == SC_CLOSE)
+            if (wParam == SC_CLOSE)
             {
                 exit(0);
             }
-            break;
-        case WM_SIZE:
-            if(wParam == SIZE_RESTORED)
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+
+        case WM_ACTIVATE:
+            if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE)
             {
-                ddraw_SetDisplayMode(ddraw, ddraw->width, ddraw->height, ddraw->bpp);
+                if (wParam == WA_ACTIVE)
+                {
+                    mouse_lock();
+                }
+                if (!ddraw->windowed)
+                {
+                    ChangeDisplaySettings(&ddraw->render.mode, CDS_FULLSCREEN);
+                }
             }
-            if(wParam == SIZE_MINIMIZED)
-            {
-                ddraw_RestoreDisplayMode(ddraw);
-            }
-            /* disallow maximize, C&C does that when WCHAT DDE is used */
-            if(wParam == SIZE_MAXIMIZED)
-            {
-                ShowWindow(ddraw->hWnd, SW_RESTORE);
-            }
-            break;
-        case WM_NCACTIVATE:
-            if(wParam == FALSE)
+            else if (wParam == WA_INACTIVE)
             {
                 mouse_unlock();
-            }
 
-            if(!ddraw->windowed)
-            {
-                if(wParam == FALSE)
+                /* minimize our window on defocus when in fullscreen */
+                if (!ddraw->windowed)
                 {
+                    ChangeDisplaySettings(&ddraw->mode, 0);
                     ShowWindow(ddraw->hWnd, SW_MINIMIZE);
                 }
-                else
-                {
-                    ShowWindow(ddraw->hWnd, SW_RESTORE);
-                }
+            }
+            return 0;
+
+        case WM_ACTIVATEAPP:
+            /* C&C and RA stop drawing when they receive this with FALSE wParam, disable in windowed mode */
+            if (ddraw->windowed)
+            {
+                return 0;
             }
             break;
+
         case WM_KEYDOWN:
             if(wParam == VK_CONTROL || wParam == VK_TAB)
             {
                 if(GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState(VK_TAB) & 0x8000)
                 {
                     mouse_unlock();
+                    return 0;
                 }
             }
 #ifdef HAVE_LIBPNG
@@ -368,16 +372,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 if(GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState(0x53) & 0x8000)
                 {
                     screenshot(ddraw->primary);
+                    return 0;
                 }
             }
 #endif
-        case WM_KEYUP:
-        case WM_SYSKEYDOWN:
-        case WM_SYSKEYUP:
-        case WM_CHAR: /* for StarCraft and general support */
-            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+            break;
+
+        /* button up messages reactivate cursor lock */
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
+        case WM_MBUTTONUP:
             if (ddraw->mhack && !ddraw->locked)
             {
                 ddraw->cursor.x = LOWORD(lParam) * ((float)ddraw->width / ddraw->render.width);
@@ -385,46 +389,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 mouse_lock();
                 return 0;
             }
+            /* fall through for lParam */
+
+        /* down messages are ignored if we have no cursor lock */
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
-        /* rest for StarCraft and general support */
         case WM_MBUTTONDOWN:
-        case WM_MBUTTONUP:
-        case WM_MBUTTONDBLCLK:
-        case WM_LBUTTONDBLCLK:
-        case WM_RBUTTONDBLCLK:
-            if(ddraw->mhack)
+        case WM_MOUSEMOVE:
+            if (ddraw->mhack)
             {
                 if (!ddraw->locked)
                 {
                     return 0;
                 }
 
+                fake_GetCursorPos(NULL); /* update our own cursor */
                 lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
             }
-        case 1129: /* this somehow triggers network activity in C&C in WCHAT mode */
-        case 1139: /* this somehow triggers network activity in RA, investigate */
-        case 2024: /* this somehow allows RA edwin to work, investigate */
-            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+            break;
 
-        /* for StarCraft and general support */
-        case WM_MOUSEMOVE:
-        case WM_NCMOUSEMOVE:
-            if(ddraw->mhack)
-            {
-                fake_GetCursorPos(&pt);
-                return ddraw->WndProc(hWnd, uMsg, wParam, MAKELPARAM(pt.x, pt.y));
-            }
-            return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
+        /* make sure we redraw when WM_PAINT is requested */
+        case WM_PAINT:
+            EnterCriticalSection(&ddraw->cs);
+            ReleaseSemaphore(ddraw->render.sem, 1, NULL);
+            LeaveCriticalSection(&ddraw->cs);
+            break;
 
         case WM_ERASEBKGND:
             EnterCriticalSection(&ddraw->cs);
             FillRect(ddraw->render.hDC, &rc, (HBRUSH) GetStockObject(BLACK_BRUSH));
+            ReleaseSemaphore(ddraw->render.sem, 1, NULL);
             LeaveCriticalSection(&ddraw->cs);
-            return TRUE;
+            break;
     }
 
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    return ddraw->WndProc(hWnd, uMsg, wParam, lParam);
 }
 
 HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DWORD dwFlags)
