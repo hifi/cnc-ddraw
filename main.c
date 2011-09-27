@@ -690,6 +690,8 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
             "vhack=false\n"
             "; switch between OpenGL (opengl) and software (gdi) renderers, latter supports less features but might be faster depending on the GPU\n"
             "renderer=gdi\n"
+            "; force CPU0 affinity, avoids crashes with RA, *might* have a performance impact\n"
+            "singlecpu=true\n"
         , fh);
         fclose(fh);
     }
@@ -817,6 +819,13 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
     {
         printf("DirectDrawCreate: Using OpenGL renderer\n");
         This->renderer = render_main;
+    }
+
+    GetPrivateProfileStringA("ddraw", "singlecpu", "true", tmp, sizeof(tmp), ini_path);
+    if (tolower(tmp[0]) == 'y' || tolower(tmp[0]) == 't' || tolower(tmp[0]) == 'e' || tmp[0] == '1')
+    {
+        printf("DirectDrawCreate: Setting CPU0 affinity\n");
+        SetProcessAffinityMask(GetCurrentProcess(), 1);
     }
 
     /* last minute check for cnc-plugin */
