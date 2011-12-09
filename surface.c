@@ -265,6 +265,7 @@ HRESULT __stdcall ddraw_surface_GetOverlayPosition(IDirectDrawSurfaceImpl *This,
 HRESULT __stdcall ddraw_surface_GetPalette(IDirectDrawSurfaceImpl *This, LPDIRECTDRAWPALETTE FAR *lplpDDPalette)
 {
     printf("DirectDrawSurface::GetPalette(This=%p, lplpDDPalette=%p)\n", This, lplpDDPalette);
+    *lplpDDPalette = (LPDIRECTDRAWPALETTE)This->palette;
     return DD_OK;
 }
 
