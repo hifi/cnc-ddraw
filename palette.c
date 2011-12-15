@@ -21,7 +21,20 @@
 
 HRESULT __stdcall ddraw_palette_GetEntries(IDirectDrawPaletteImpl *This, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries)
 {
+    int i;
+
     printf("DirectDrawPalette::GetEntries(This=%p, dwFlags=%d, dwBase=%d, dwNumEntries=%d, lpEntries=%p)\n", This, (int)dwFlags, (int)dwBase, (int)dwNumEntries, lpEntries);
+
+    for(i=dwBase;i<dwBase+dwNumEntries;i++)
+    {
+        if (This->data_rgb)
+        {
+            lpEntries[i].peRed = This->data_rgb[i].rgbRed;
+            lpEntries[i].peGreen = This->data_rgb[i].rgbGreen;
+            lpEntries[i].peBlue = This->data_rgb[i].rgbBlue;
+        }
+    }
+
     return DD_OK;
 }
 
