@@ -59,7 +59,8 @@ HRESULT __stdcall ddraw_palette_SetEntries(IDirectDrawPaletteImpl *This, DWORD d
         }
     }
 
-    if(ddraw->primary && !(ddraw->primary->flags & DDSD_BACKBUFFERCOUNT) && ddraw->render.run)
+    /* FIXME: only refresh the screen when the primary palette is changed */
+    if(ddraw->primary && ddraw->render.run)
     {
         ReleaseSemaphore(ddraw->render.sem, 1, NULL);
     }
