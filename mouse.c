@@ -187,7 +187,13 @@ void mouse_lock()
 {
     RECT rc;
 
-    if(mouse_active && !ddraw->locked)
+    if (ddraw->devmode)
+    {
+        while(ShowCursor(FALSE) > 0);
+        return;
+    }
+
+    if (mouse_active && !ddraw->locked)
     {
         GetWindowRect(ddraw->hWnd, &rc);
         
@@ -207,6 +213,12 @@ void mouse_unlock()
 {
     RECT rc;
     POINT pt;
+
+    if (ddraw->devmode)
+    {
+        while(ShowCursor(TRUE) < 0);
+        return;
+    }
 
     if(!mouse_active)
     {
@@ -236,7 +248,7 @@ void mouse_unlock()
 
 void mouse_init(HWND hWnd)
 {
-    if(ddraw->mhack)
+    if(ddraw->mhack || ddraw->devmode)
     {
         hack_iat(&hacks[0]);
         mouse_active = TRUE;

@@ -349,6 +349,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
             return 0;
 
+        case WM_MOUSELEAVE:
+            mouse_unlock();
+            return 0;
+
         case WM_ACTIVATEAPP:
             /* C&C and RA stop drawing when they receive this with FALSE wParam, disable in windowed mode */
             if (ddraw->windowed)
@@ -406,6 +410,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 fake_GetCursorPos(NULL); /* update our own cursor */
                 lParam = MAKELPARAM(ddraw->cursor.x, ddraw->cursor.y);
             }
+
+            if (ddraw->devmode)
+            {
+                mouse_lock();
+                ddraw->cursor.x = GET_X_LPARAM(lParam);
+                ddraw->cursor.y = GET_Y_LPARAM(lParam);
+            }
             break;
 
         /* make sure we redraw when WM_PAINT is requested */
@@ -457,10 +468,7 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
         return DD_OK;
     }
 
-    if(!This->devmode)
-    {
-        SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
-    }
+    SetWindowLong(This->hWnd, GWL_WNDPROC, (LONG)WndProc);
 
     if(!This->render.hDC)
     {
