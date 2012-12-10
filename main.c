@@ -488,13 +488,10 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
 
     GetWindowText(This->hWnd, (LPTSTR)&This->title, sizeof(This->title));
 
-    if(This->vhack == 1)
-    {
-        if (strcmp(This->title, "Command & Conquer"))
-        {
-            This->vhack = 0;
-        }
-    }
+	if (!strcmp(This->title, "Red Alert"))
+	{
+		ddraw->isredalert = 1;
+	}
 
     return DD_OK;
 }

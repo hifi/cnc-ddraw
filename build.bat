@@ -1,0 +1,2 @@
+make EXT=.exe
+pause

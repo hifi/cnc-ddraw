@@ -168,15 +168,17 @@ DWORD WINAPI render_main(void)
     return 0;
 }
 
-static unsigned char getPixel(int x, int y)
-{
-    return ((unsigned char *)ddraw->primary->surface)[y*ddraw->primary->lPitch + x*ddraw->primary->lXPitch];
-}
 
-BOOL detect_cutscene()
-{
-    if(ddraw->width <= CUTSCENE_WIDTH || ddraw->height <= CUTSCENE_HEIGHT)
-        return FALSE;
 
-    return getPixel(CUTSCENE_WIDTH + 1, 0) == 0 || getPixel(CUTSCENE_WIDTH + 5, 1) == 0 ? TRUE : FALSE;
-}
+//BOOL detect_cutscene()
+//{
+//   if(ddraw->width <= CUTSCENE_WIDTH || ddraw->height <= CUTSCENE_HEIGHT)
+//        return FALSE;
+//
+//    return getPixel(CUTSCENE_WIDTH + 1, 0) == 0 || getPixel(CUTSCENE_WIDTH + 5, 1) == 0 ? TRUE : FALSE;
+//}
+
+#define DECLARE_VAR(name, type, address) type name = address
+
+//DECLARE_VAR(InMovie, int*, 0x00665F58);
+//DECLARE_VAR(IsVQA640, int*, 0x0065D7BC);
