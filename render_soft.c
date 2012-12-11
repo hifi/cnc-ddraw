@@ -34,6 +34,9 @@ BYTE* ShouldStretch = (BYTE*)0x00711015;
 
 BOOL detect_cutscene()
 {
+	if(ddraw->width <= CUTSCENE_WIDTH || ddraw->height <= CUTSCENE_HEIGHT)
+		return FALSE;
+		
 	if (ddraw->isredalert == TRUE)
 	{
 		if ((*InMovie && !*IsVQA640) || *ShouldStretch)
@@ -42,8 +45,6 @@ BOOL detect_cutscene()
 		}
 		return FALSE;
 	}
-	else if(ddraw->width <= CUTSCENE_WIDTH || ddraw->height <= CUTSCENE_HEIGHT)
-		return FALSE;
 
 	return getPixel(CUTSCENE_WIDTH + 1, 0) == 0 || getPixel(CUTSCENE_WIDTH + 5, 1) == 0 ? TRUE : FALSE;	
 }
@@ -113,17 +114,33 @@ DWORD WINAPI render_soft_main(void)
             {
                 StretchDIBits(ddraw->render.hDC, dst_left, dst_top, dst_width, dst_height, 0, 0, ddraw->width, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
             }
-			else if (!detect_cutscene())
+			else if (!ddraw->vhack || !detect_cutscene())
 			{
 				SetDIBitsToDevice(ddraw->render.hDC, 0, 0, ddraw->width, ddraw->height, 0, 0, 0, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS);
 			}
 
         }
-		if (ddraw->primary && detect_cutscene()) // for vhack
+		if (ddraw->vhack && ddraw->primary && detect_cutscene()) // for vhack
 		{
+
 			// for 800 x 600:
 			//StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, 200, CUTSCENE_WIDTH, CUTSCENE_HEIGHT, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
 			StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, ddraw->render.height-400, CUTSCENE_WIDTH, CUTSCENE_HEIGHT, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
+			
+			if (ddraw->primary->palette && (ddraw->cursorclip.width != CUTSCENE_WIDTH || ddraw->cursorclip.height != CUTSCENE_HEIGHT))
+			{
+				ddraw->cursorclip.width = CUTSCENE_WIDTH;
+				ddraw->cursorclip.height = CUTSCENE_HEIGHT;
+				ddraw->cursor.x = CUTSCENE_WIDTH / 2;
+				ddraw->cursor.y = CUTSCENE_HEIGHT / 2;
+			}
+		}
+		else if(ddraw->primary && ddraw->primary->palette && (ddraw->cursorclip.width != ddraw->width || ddraw->cursorclip.height != ddraw->height))
+		{
+			ddraw->cursorclip.width = ddraw->width;
+			ddraw->cursorclip.height = ddraw->height;
+			ddraw->cursor.x = ddraw->width / 2;
+			ddraw->cursor.y = ddraw->height / 2;
 		}
 
         LeaveCriticalSection(&ddraw->cs);
