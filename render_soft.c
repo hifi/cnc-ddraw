@@ -125,7 +125,7 @@ DWORD WINAPI render_soft_main(void)
 
 			// for 800 x 600:
 			//StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, 200, CUTSCENE_WIDTH, CUTSCENE_HEIGHT, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
-			StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, ddraw->render.height-400, CUTSCENE_WIDTH, CUTSCENE_HEIGHT, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
+			StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, ddraw->height-400, CUTSCENE_WIDTH, CUTSCENE_HEIGHT, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
 			
 			if (ddraw->primary->palette && (ddraw->cursorclip.width != CUTSCENE_WIDTH || ddraw->cursorclip.height != CUTSCENE_HEIGHT))
 			{
