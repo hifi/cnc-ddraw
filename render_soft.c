@@ -102,8 +102,10 @@ DWORD WINAPI render_soft_main(void)
         {
             tick_start = GetTickCount();
         }
+		
+		 EnterCriticalSection(&ddraw->cs);
 
-        if (ddraw->primary && (ddraw->primary->palette || ddraw->bpp == 16))
+        if (ddraw->primary && (ddraw->primary->palette || ddraw->bpp == 16) && !detect_cutscene())
         {
             if (ddraw->primary->palette && ddraw->primary->palette->data_rgb == NULL)
             {
@@ -120,12 +122,14 @@ DWORD WINAPI render_soft_main(void)
 			}
 
         }
-		if (ddraw->vhack && ddraw->primary && detect_cutscene()) // for vhack
+		if (ddraw->vhack /*&& ddraw->primary*/ && detect_cutscene()) // for vhack
 		{
 
 			// for 800 x 600:
 			//StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, 200, CUTSCENE_WIDTH, CUTSCENE_HEIGHT, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
-			StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, ddraw->height-400, CUTSCENE_WIDTH, CUTSCENE_HEIGHT, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
+			
+						StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, ddraw->height-400, CUTSCENE_WIDTH, CUTSCENE_HEIGHT, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
+
 			
 			if (ddraw->primary->palette && (ddraw->cursorclip.width != CUTSCENE_WIDTH || ddraw->cursorclip.height != CUTSCENE_HEIGHT))
 			{
