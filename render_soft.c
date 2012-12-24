@@ -105,26 +105,29 @@ DWORD WINAPI render_soft_main(void)
 		
 		 EnterCriticalSection(&ddraw->cs);
 
-        if (ddraw->primary && (ddraw->primary->palette || ddraw->bpp == 16) && !detect_cutscene())
+        if (ddraw->primary && (ddraw->primary->palette || ddraw->bpp == 16))
         {
             if (ddraw->primary->palette && ddraw->primary->palette->data_rgb == NULL)
             {
                 ddraw->primary->palette->data_rgb = &bmi->bmiColors[0];
             }
 
-            if (ddraw->render.width != ddraw->width || ddraw->render.height != ddraw->height)
+            if ((ddraw->render.width != ddraw->width || ddraw->render.height != ddraw->height) && !(ddraw->vhack && detect_cutscene()) )
             {
                 StretchDIBits(ddraw->render.hDC, dst_left, dst_top, dst_width, dst_height, 0, 0, ddraw->width, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
             }
-			else if (!ddraw->vhack || !detect_cutscene())
+			else if (!(ddraw->vhack && detect_cutscene()))
 			{
 				SetDIBitsToDevice(ddraw->render.hDC, 0, 0, ddraw->width, ddraw->height, 0, 0, 0, ddraw->height, ddraw->primary->surface, bmi, DIB_RGB_COLORS);
 			}
 
         }
-		if (ddraw->vhack /*&& ddraw->primary*/ && detect_cutscene()) // for vhack
+		if (ddraw->vhack && ddraw->primary && detect_cutscene()) // for vhack
 		{
-
+			if (ddraw->primary->palette && ddraw->primary->palette->data_rgb == NULL)
+            {
+                ddraw->primary->palette->data_rgb = &bmi->bmiColors[0];
+            }
 			// for 800 x 600:
 			//StretchDIBits(ddraw->render.hDC, 0, 0, ddraw->render.width, ddraw->render.height, 0, 200, CUTSCENE_WIDTH, CUTSCENE_HEIGHT, ddraw->primary->surface, bmi, DIB_RGB_COLORS, SRCCOPY);
 			
