@@ -30,7 +30,7 @@ static unsigned char getPixel(int x, int y)
 
 int* InMovie = (int*)0x00665F58;
 int* IsVQA640 = (int*)0x0065D7BC; 
-BYTE* ShouldStretch = (BYTE*)0x00711015;
+BYTE* ShouldStretch = (BYTE*)0x006ED235;
 
 BOOL detect_cutscene()
 {
