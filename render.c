@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+
 #include <windows.h>
 #include <stdio.h>
 
@@ -86,12 +87,16 @@ DWORD WINAPI render_main(void)
     }
 
     glEnable(GL_TEXTURE_2D);
+	
+	timeBeginPeriod(1);
+	
+
 
     while(ddraw->render.run && WaitForSingleObject(ddraw->render.sem, INFINITE) != WAIT_FAILED)
     {
-        scale_w = (float)ddraw->width/tex_width;
-        scale_h = (float)ddraw->height/tex_height;
-
+		scale_w = (float)ddraw->width/tex_width;
+		scale_h = (float)ddraw->height/tex_height;
+	
         if(ddraw->render.maxfps > 0)
         {
             tick_start = GetTickCount();
@@ -144,22 +149,23 @@ DWORD WINAPI render_main(void)
         glTexCoord2f(scale_w,scale_h);  glVertex2f( 1, -1);	
         glTexCoord2f(0,scale_h);        glVertex2f(-1, -1);
         glEnd();
+		
+		SwapBuffers(ddraw->render.hDC); 
 
-        SwapBuffers(ddraw->render.hDC);
-
-        if(ddraw->render.maxfps > 0)
-        {
-            tick_end = GetTickCount();
-
-            if(tick_end - tick_start < frame_len)
-            {
-                Sleep( frame_len - (tick_end - tick_start) );
+        if((ddraw->render.maxfps > 0))
+        {        
+			tick_end = GetTickCount();
+			
+           if(tick_end - tick_start < frame_len)
+           {
+				Sleep( frame_len - (tick_end - tick_start));
             }
         }
 
         SetEvent(ddraw->render.ev);
     }
-
+	timeEndPeriod(1);
+		
     HeapFree(GetProcessHeap(), 0, tex);
 
     wglMakeCurrent(NULL, NULL);
@@ -167,18 +173,3 @@ DWORD WINAPI render_main(void)
 
     return 0;
 }
-
-
-
-//BOOL detect_cutscene()
-//{
-//   if(ddraw->width <= CUTSCENE_WIDTH || ddraw->height <= CUTSCENE_HEIGHT)
-//        return FALSE;
-//
-//    return getPixel(CUTSCENE_WIDTH + 1, 0) == 0 || getPixel(CUTSCENE_WIDTH + 5, 1) == 0 ? TRUE : FALSE;
-//}
-
-#define DECLARE_VAR(name, type, address) type name = address
-
-//DECLARE_VAR(InMovie, int*, 0x00665F58);
-//DECLARE_VAR(IsVQA640, int*, 0x0065D7BC);

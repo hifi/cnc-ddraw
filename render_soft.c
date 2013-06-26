@@ -30,7 +30,7 @@ static unsigned char getPixel(int x, int y)
 
 int* InMovie = (int*)0x00665F58;
 int* IsVQA640 = (int*)0x0065D7BC; 
-BYTE* ShouldStretch = (BYTE*)0x006ED235;
+BYTE* ShouldStretch = (BYTE*)0x00607D78;
 
 BOOL detect_cutscene()
 {
@@ -48,7 +48,6 @@ BOOL detect_cutscene()
 
 	return getPixel(CUTSCENE_WIDTH + 1, 0) == 0 || getPixel(CUTSCENE_WIDTH + 5, 1) == 0 ? TRUE : FALSE;	
 }
-
 
 DWORD WINAPI render_soft_main(void)
 {
@@ -69,6 +68,8 @@ DWORD WINAPI render_soft_main(void)
     DWORD tick_start = 0;
     DWORD tick_end = 0;
     DWORD frame_len = 0;
+	
+	timeBeginPeriod(1);
 
     if (ddraw->boxing)
     {
@@ -152,17 +153,18 @@ DWORD WINAPI render_soft_main(void)
 
         LeaveCriticalSection(&ddraw->cs);
 
-        if(ddraw->render.maxfps > 0)
+        if((ddraw->render.maxfps > 0) && !detect_cutscene())
         {
             tick_end = GetTickCount();
 
             if(tick_end - tick_start < frame_len)
             {
-                Sleep( frame_len - (tick_end - tick_start) );
+               Sleep( frame_len - (tick_end - tick_start) + 1);
             }
         }
         SetEvent(ddraw->render.ev);
     }
+	timeEndPeriod(1);
 
     HeapFree(GetProcessHeap(), 0, bmi);
 
