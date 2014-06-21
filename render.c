@@ -167,18 +167,17 @@ DWORD WINAPI render_main(void)
                 }
             }
 
-            // poor man's 'deinterlace'
+            // poor man's deinterlace
             if(ddraw->vhack && detect_cutscene())
             {
-                // poor man's 'deinterlace'
-                for(i=1; i<ddraw->height - 1; i++)
+                for(i = 1; i < (ddraw->height - 1); i += 2)
                 {
                     for(j=0; j<ddraw->width; j++)
                     {
-                        if(tex[i*ddraw->width+j] == 0 || tex[i*ddraw->width+j] == 2)
+                        if(tex[i*ddraw->width+j] == 0)
                         {
-                            prevRow = ddraw->primary->palette->data_bgr[((unsigned char *)ddraw->primary->surface)[(i-1)*ddraw->primary->lPitch + j*ddraw->primary->lXPitch]];
-                            nextRow = ddraw->primary->palette->data_bgr[((unsigned char *)ddraw->primary->surface)[(i+1)*ddraw->primary->lPitch + j*ddraw->primary->lXPitch]];
+                            prevRow = tex[(i-1)*ddraw->width+j];
+                            nextRow = tex[(i+1)*ddraw->width+j];
 
                             tex[i*ddraw->width+j] = (prevRow+nextRow)/2;
                         }
