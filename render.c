@@ -34,7 +34,7 @@ BOOL detect_cutscene();
 
 DWORD WINAPI render_main(void)
 {
-    int i,j;
+    int i,j,prevRow,nextRow;
     HGLRC hRC;
 
     // fixed: texture not square but ASPECT RATIO scaled
@@ -158,11 +158,27 @@ DWORD WINAPI render_main(void)
                 }
             }
 
+            // regular paint
             for(i=0; i<ddraw->height; i++)
             {
                 for(j=0; j<ddraw->width; j++)
                 {
                     tex[i*ddraw->width+j] = ddraw->primary->palette->data_bgr[((unsigned char *)ddraw->primary->surface)[i*ddraw->primary->lPitch + j*ddraw->primary->lXPitch]];
+                }
+            }
+
+            // poor man's 'deinterlace'
+            if(ddraw->vhack && detect_cutscene())
+            {
+                for(i=1; i<ddraw->height - 1; i+=2)
+                {
+                    for(j=0; j<ddraw->width; j++)
+                    {
+                        prevRow = ddraw->primary->palette->data_bgr[((unsigned char *)ddraw->primary->surface)[(i-1)*ddraw->primary->lPitch + j*ddraw->primary->lXPitch]];
+                        nextRow = ddraw->primary->palette->data_bgr[((unsigned char *)ddraw->primary->surface)[(i+1)*ddraw->primary->lPitch + j*ddraw->primary->lXPitch]];
+
+                        tex[i*ddraw->width+j] = (prevRow+nextRow)/2;
+                    }
                 }
             }
         }
