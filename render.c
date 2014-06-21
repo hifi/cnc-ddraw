@@ -169,7 +169,6 @@ DWORD WINAPI render_main(void)
         LeaveCriticalSection(&ddraw->cs);
 
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ddraw->width, ddraw->height, GL_RGBA, GL_UNSIGNED_BYTE, tex);
-        //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, projectedWidth, projectedHeight, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
         glBegin(GL_TRIANGLE_FAN);
         glTexCoord2f(0,0);              glVertex2f(-1,  1);
