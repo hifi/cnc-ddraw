@@ -14,6 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+Edits by Ben Lankamp
+
+Added pillar box rendering for OpenGL
+*/
 #include <windows.h>
 #include <stdio.h>
 
@@ -23,6 +28,8 @@
 #define CUTSCENE_WIDTH 640
 #define CUTSCENE_HEIGHT 400
 
+#define ASPECT_RATIO 4/3
+
 BOOL detect_cutscene();
 
 DWORD WINAPI render_main(void)
@@ -30,8 +37,9 @@ DWORD WINAPI render_main(void)
     int i,j;
     HGLRC hRC;
 
+    // fixed: texture not square but ASPECT RATIO scaled
     int tex_width = ddraw->width > 1024 ? ddraw->width : 1024;
-    int tex_height = ddraw->height > 1024 ? ddraw->height : 1024;
+    int tex_height = ddraw->height > 768 ? ddraw->height : 768;
     float scale_w = 1.0f;
     float scale_h = 1.0f;
     int *tex = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, tex_width * tex_height * sizeof(int));
@@ -72,7 +80,31 @@ DWORD WINAPI render_main(void)
     }
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
-    glViewport(0, 0, ddraw->render.width, ddraw->render.height);
+
+    // define screen width and height
+    // define projected width and height (aspect ratio preserved)
+    int screenWidth = ddraw->render.width;
+    int screenHeight = ddraw->render.height;
+
+    // define projection width and height depending on the aspect ratio
+    // this effectively sets a pillar box view
+    int projectedHeight = screenHeight;
+    int projectedWidth = projectedHeight * ASPECT_RATIO;
+    int projectedLeft, projectedTop;
+
+    if(ddraw->boxing)
+    {
+        projectedLeft = (screenWidth - projectedWidth) / 2;
+        projectedTop = (screenHeight - projectedHeight) / 2;
+
+        glViewport(projectedLeft, projectedTop, projectedWidth, projectedHeight);
+    }
+    else
+    {
+        projectedWidth = screenWidth;
+        projectedHeight = screenHeight;
+        glViewport(0, 0, screenWidth, screenHeight);
+    }
 
     if(ddraw->render.filter)
     {
@@ -137,11 +169,12 @@ DWORD WINAPI render_main(void)
         LeaveCriticalSection(&ddraw->cs);
 
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ddraw->width, ddraw->height, GL_RGBA, GL_UNSIGNED_BYTE, tex);
+        //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, projectedWidth, projectedHeight, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
         glBegin(GL_TRIANGLE_FAN);
         glTexCoord2f(0,0);              glVertex2f(-1,  1);
         glTexCoord2f(scale_w,0);        glVertex2f( 1,  1);
-        glTexCoord2f(scale_w,scale_h);  glVertex2f( 1, -1);	
+        glTexCoord2f(scale_w,scale_h);  glVertex2f( 1, -1);
         glTexCoord2f(0,scale_h);        glVertex2f(-1, -1);
         glEnd();
 
