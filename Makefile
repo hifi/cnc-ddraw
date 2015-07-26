@@ -1,13 +1,9 @@
-CC=i586-mingw32msvc-gcc
-WINDRES=i586-mingw32msvc-windres
+CC=gcc
 CFLAGS=-DHAVE_LIBPNG -Iinclude -Wall -Wl,--enable-stdcall-fixup -O3 -s
-LIBS=lib/libpng14.a lib/libz.a -lgdi32 -lopengl32
-REV=$(shell sh -c 'git rev-parse --short @{0}')
+LIBS=lib/libpng14.a lib/libz.a -lgdi32 -lopengl32 -lwinmm
 
 all:
-	sed 's/__REV__/$(REV)/g' ddraw.rc.in > ddraw.rc
-	$(WINDRES) -J rc ddraw.rc ddraw.rc.o
-	$(CC) $(CFLAGS) -shared -o ddraw.dll main.c mouse.c palette.c surface.c clipper.c render.c render_soft.c render_dummy.c screenshot.c ddraw.def ddraw.rc.o $(LIBS)
+	$(CC) $(CFLAGS) -shared -o ddraw.dll main.c mouse.c palette.c surface.c clipper.c render.c render_soft.c render_dummy.c screenshot.c ddraw.def $(LIBS)
 
 clean:
 	rm -f ddraw.dll

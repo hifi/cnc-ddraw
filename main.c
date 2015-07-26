@@ -25,6 +25,8 @@
 #include "surface.h"
 #include "clipper.h"
 
+#define IDR_MYMENU 93
+
 /* from mouse.c */
 BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint);
 void mouse_init(HWND);
@@ -217,6 +219,14 @@ HRESULT __stdcall ddraw_SetDisplayMode(IDirectDrawImpl *This, DWORD width, DWORD
     }
 
     mouse_unlock();
+	
+	const HANDLE hbicon = LoadImage(GetModuleHandle(0), MAKEINTRESOURCE(IDR_MYMENU), IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), 0);
+	if (hbicon)
+		SendMessage(This->hWnd, WM_SETICON, ICON_BIG, (LPARAM)hbicon);
+
+	const HANDLE hsicon = LoadImage(GetModuleHandle(0), MAKEINTRESOURCE(IDR_MYMENU), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+	if (hsicon)
+		SendMessage(This->hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hsicon);
 
     if(This->windowed)
     {
@@ -488,13 +498,10 @@ HRESULT __stdcall ddraw_SetCooperativeLevel(IDirectDrawImpl *This, HWND hWnd, DW
 
     GetWindowText(This->hWnd, (LPTSTR)&This->title, sizeof(This->title));
 
-    if(This->vhack == 1)
-    {
-        if (strcmp(This->title, "Command & Conquer"))
-        {
-            This->vhack = 0;
-        }
-    }
+	if (!strcmp(This->title, "Red Alert"))
+	{
+		ddraw->isredalert = 1;
+	}
 
     return DD_OK;
 }
@@ -855,6 +862,7 @@ HRESULT WINAPI DirectDrawCreate(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnk
 
         printf("DirectDrawCreate: Detected cnc-plugin at window %08X in %dx%d\n", (unsigned int)This->hWnd, This->render.width, This->render.height);
     }
+
 
     return DD_OK;
 }

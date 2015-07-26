@@ -1,0 +1,3 @@
+0x00607D78 = InMovie
+0x0065D7BC = IsVQA640
+0x00607D78 = ShouldStretch BYTE (added by 3.03p-iran)
